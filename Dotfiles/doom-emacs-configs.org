@@ -4,8 +4,8 @@
 
 * Table of Content
 - [[#introduction][Introduction]]
-- [[#init-el]Init File]]
-- [[#config-el]Config File]]
+- [[#init-el][Init File]]
+- [[#config-el][Config File]]
   - [[#set-author-information][Author Information]]
   - [[#load-and-initialize-pdf-tools][PDF Tools]]
   - [[#start-emacs-in-fullscreen-mode][Always Open In Full Screen Mode]]

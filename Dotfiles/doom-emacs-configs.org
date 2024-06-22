@@ -28,8 +28,8 @@
   - [[#org-mode-optimization][Orgmode Optimization]]
   - [[#disable-line-numbers-for-the-doom-emacs-startup][Disableline-numbers on start-up page]]
   - [[#enable-org-babel-languages][Enable org babel languages]]
-  - [[#packages.el][Packages]]
-        -[[#installed-Packages][Installed Packages]]
+  - [[#packages-file][Packages File]]
+    - [[#installed-Packages][Installed Packages]]
 
 * Introduction
 Welcome to my Doom Emacs configuration! This document is both a configuration file for Emacs and a demonstration of literate programming using Org-mode. By structuring my Emacs configuration in this way, I can combine detailed documentation with executable code, making it easier to maintain and share with others.
@@ -565,8 +565,7 @@ This is my first attempt at setting up a personalized Emacs configuration using 
                       'append 'local)))
 #+END_SRC
 
-** packages.el
-
+** Packages File
 #+begin_src emacs-lisp :tangle ~/.doom.d/packages.el
 
 ;; -*- no-byte-compile: t; -*-

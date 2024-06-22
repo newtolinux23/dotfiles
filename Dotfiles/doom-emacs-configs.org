@@ -3,33 +3,33 @@
 #+date: \today
 
 * Table of Content
-- [[#Introduction][Introduction]]
-- [[#init.el][init.el]]
-- [[config.el][config.el]]
-  - [[Set]]
-  - [[Load and initialize pdf-tools]]
-  - [[Start Emacs in fullscreen mode]]
-  - [[Set author information for AUCTeX]]
-  - [[Enable Org mode and LaTeX packages]]
-  - [[#Example-setting-the-default-font][Example: Setting the default font]]
-  - [[Example: Enabling icons and setting the height]]
-  - [[Enable line numbers]]
-  - [[Disable toolbar and scrollbar]]
-  - [[Disable the startup screen]]
-  - [[Set transparency to be less transparent]]
-  - [[Disable line numbers in pdf-view-mode]]
-  - [[Enable Flyspell for text and programming modes]]
-  - [[Set initial text scale]]
-  - [[Optional: Keybindings for adjusting text scale]]
-  - [[Indentation Settings]]
-  - [[Increase the garbage collection threshold to 100MB during startup to speed up initialization]]
-  - [[Set up company for autocompletion]]
-  - [[Set up lsp-mode for language server support]]
-  - [[Org mode optimization]]
-  - [[Disable line numbers for the Doom Emacs startup buffer]]
-  - [[Enable Org Babel languages]]
-- [[packages.el]]
-  - [[Installed Packages]]
+- [[#introduction][Introduction]]
+- [[#init.el][Init File]]
+- [[#config.el][Config File]]
+  - [[#set-author-information][Author Information]]
+  - [[#load-and-initialize-pdf-tools][PDF Tools]]
+  - [[#start-emacs-in-fullscreen-mode][Always Open In Full Screen Mode]]
+  - [[#set-author-information-for-auctex][AUCTEX Author Info]]
+  - [[#enable-orgmode-and-latex-packages][Enable Latex Packages in Org-mode]]
+  - [[#setting-the-default-font][Setting the default font]]
+  - [[#enabling-icons-and-setting-the-height][Icons Settings Height]]
+  - [[#enable-line-numbers][Enable line numbers]]
+  - [[#disable-toolbar-and-scrollbar][Disable toolbar and scrollbar]]
+  - [[#disable-the-startup-screen][Disable the startup screen]]
+  - [[#set-transparency-to-be-less-transparent][Transparency]]
+  - [[#disable-line-numbers-in-pdf-view-mode][Disable line numbers]]
+  - [[#enable-flyspell-for-text-and-programming-modes][Flyspell]]
+  - [[#set-initial-text-scale][Scaling]]
+  - [[#keybindings-for-adjusting-text-scale][Keybindings adjust text scale]]
+  - [[#indentation-settings][Indentation]]
+  - [[Garbage-collection-threshold-to-speed-up-initialization][Garbage Collection Threshold]]
+  - [[#set-up-company-company-for-autocompletion][Set up company autocompletion]]
+  - [[#set-up-lsp-mode-for-language-server-support][lsp-mode for language support]]
+  - [[#org-mode-optimization][Orgmode Optimization]]
+  - [[#disable-line-numbers-for-the-doom-emacs-startup][Disableline-numbers on start-up page]]
+  - [[#enable-org-babel-languages][Enable org babel languages]]
+  - [[#packages.el][Packages]]
+    -[[#installed-Packages][Installed Packages]]
 
 * Introduction
 Welcome to my Doom Emacs configuration! This document is both a configuration file for Emacs and a demonstration of literate programming using Org-mode. By structuring my Emacs configuration in this way, I can combine detailed documentation with executable code, making it easier to maintain and share with others.
@@ -396,14 +396,14 @@ This is my first attempt at setting up a personalized Emacs configuration using 
   )
 #+end_src
 
-*** Example: Setting the default font
+*** Setting the default font
 #+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
 (setq doom-font (font-spec :family "Fira Code" :size 16 :weight 'regular))
 (setq doom-variable-pitch-font (font-spec :family "Arial" :size 16))
 (setq doom-big-font (font-spec :family "Fira Code" :size 20))
 #+end_src
 
-*** Example: Enabling icons and setting the height
+*** Enabling icons and setting the height
 #+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
 (setq doom-modeline-icon t)
 (setq doom-modeline-height 25)
@@ -468,7 +468,7 @@ This is my first attempt at setting up a personalized Emacs configuration using 
 (add-hook 'after-init-hook 'my/set-default-text-scale)
 #+end_src
 
-*** Optional: Keybindings for adjusting text scale
+*** Keybindings for adjusting text scale
 #+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
 (map! :leader
       :desc "Increase text scale" "z i" #'text-scale-increase
@@ -487,7 +487,7 @@ This is my first attempt at setting up a personalized Emacs configuration using 
  indent-tabs-mode t)
 #+end_src
 
-*** Increase the garbage collection threshold to 100MB during startup to speed up initialization
+*** Garbage collection threshold to speed up initialization
 #+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
 (setq gc-cons-threshold (* 100 1024 1024))
 

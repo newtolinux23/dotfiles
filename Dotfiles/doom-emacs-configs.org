@@ -1,5 +1,6 @@
 #+title: Doom Emacs Configuration File
-#+TOC: headlines 5
+#+author: Rob Alicea
+#+date: \today
 
 * Table of Content
 - [[Introduction][Introduction]]

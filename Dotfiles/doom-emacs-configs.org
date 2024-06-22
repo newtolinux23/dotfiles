@@ -4,8 +4,8 @@
 
 * Table of Content
 - [[#introduction][Introduction]]
-- [[#init.el][Init File]]
-- [[#config.el][Config File]]
+- [[#init-el]Init File]]
+- [[#config-el]Config File]]
   - [[#set-author-information][Author Information]]
   - [[#load-and-initialize-pdf-tools][PDF Tools]]
   - [[#start-emacs-in-fullscreen-mode][Always Open In Full Screen Mode]]
@@ -29,7 +29,7 @@
   - [[#disable-line-numbers-for-the-doom-emacs-startup][Disableline-numbers on start-up page]]
   - [[#enable-org-babel-languages][Enable org babel languages]]
   - [[#packages.el][Packages]]
-    -[[#installed-Packages][Installed Packages]]
+        -[[#installed-Packages][Installed Packages]]
 
 * Introduction
 Welcome to my Doom Emacs configuration! This document is both a configuration file for Emacs and a demonstration of literate programming using Org-mode. By structuring my Emacs configuration in this way, I can combine detailed documentation with executable code, making it easier to maintain and share with others.

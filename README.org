@@ -1,4 +1,4 @@
-#+TITLE: Dotfiles Repository
+#+TITLE: My Configurations
 #+AUTHOR: Rob Alicea
 #+DATE: <2024-06-22 Sat>
 
@@ -39,10 +39,40 @@ To get started with my Dotfiles, follow these steps:
    SPC m b t
    #+END_SRC
 
+* Updating Your Configuration
+To update your configuration files, follow these steps:
+
+** 1. Edit Your Org Files
+   Make changes to your Org files to update your configurations. Here’s an example:
+
+   #+BEGIN_SRC org
+   * Custom Keybindings
+   #+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
+   ;; Custom keybindings
+   (global-set-key (kbd "C-x C-b") 'ibuffer)
+   #+END_SRC
+   #+END_SRC
+
+** 2. Tangle the Org Files
+   Tangle the Org files to generate the updated configuration files:
+
+   #+BEGIN_SRC emacs-lisp
+   SPC m b t
+   #+END_SRC
+
+** 3. Stage and Commit Changes
+   Use the `config` alias to add, commit, and push your changes:
+
+   #+BEGIN_SRC sh
+   config add ~/.doom.d/config.el
+   config commit -m "Updated keybindings in config.el"
+   config push
+   #+END_SRC
+
 * Using Git Bare for Dotfiles
 Using a Git bare repository for Dotfiles keeps your home directory clean and simplifies version control. Here's how I manage it:
 
-- **Add and Commit Changes:**
+- *Add and Commit Changes:*
   Use the `config` alias to add and commit changes to your Dotfiles:
 
   #+BEGIN_SRC sh
@@ -51,7 +81,7 @@ Using a Git bare repository for Dotfiles keeps your home directory clean and sim
   config push
   #+END_SRC
 
-- **Exclude Untracked Files:**
+- *Exclude Untracked Files:*
   Avoid cluttering your Git status with untracked files by configuring Git to ignore them:
 
   #+BEGIN_SRC sh

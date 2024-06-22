@@ -7,14 +7,14 @@ Hey there! 👋 Welcome to my Dotfiles repository, a collection of all my config
 
 * Why Dotfiles?
 Dotfiles are configuration files for various applications and tools that make up your personal computing environment. By storing these files in a Git repository, you can:
-- **Backup and Restore:** Easily recover your setup if you lose your files or switch to a new system.
-- **Version Control:** Track changes to your configurations and roll back if something breaks.
-- **Share and Learn:** Share your setup with others and learn from their configurations.
+- *Backup and Restore:* Easily recover your setup if you lose your files or switch to a new system.
+- *Version Control:* Track changes to your configurations and roll back if something breaks.
+- *Share and Learn:* Share your setup with others and learn from their configurations.
 
 * Why Org-mode and Doom Emacs?
 Org-mode and Doom Emacs have revolutionized how I manage my configuration files and daily workflow. Here's why:
-- **Literate Programming:** Org-mode allows me to combine documentation and code in a single file, making my configurations more understandable and maintainable.
-- **Doom Emacs:** This Emacs distribution provides a modern, fast, and highly customizable environment that enhances my productivity and workflow.
+- *Literate Programming:* Org-mode allows me to combine documentation and code in a single file, making my configurations more understandable and maintainable.
+- *Doom Emacs:* This Emacs distribution provides a modern, fast, and highly customizable environment that enhances my productivity and workflow.
 
 * Setting Up
 To get started with my Dotfiles, follow these steps:
@@ -60,9 +60,9 @@ Using a Git bare repository for Dotfiles keeps your home directory clean and sim
 
 * Why I Love This Setup
 After experimenting with various setups, I've found that combining Org-mode, Doom Emacs, and a Git bare repository provides the perfect balance of flexibility and simplicity. Here's what I love about it:
-- **Documentation and Code Together:** Org-mode lets me document my configurations alongside the actual code, making it easier to understand and maintain.
-- **Efficient Workflow:** Doom Emacs streamlines my workflow with its powerful features and customizability.
-- **Peace of Mind:** Knowing that all my configurations are safely version-controlled and easily recoverable gives me peace of mind.
+- *Documentation and Code Together:* Org-mode lets me document my configurations alongside the actual code, making it easier to understand and maintain.
+- *Efficient Workflow:* Doom Emacs streamlines my workflow with its powerful features and customizability.
+- *Peace of Mind:* Knowing that all my configurations are safely version-controlled and easily recoverable gives me peace of mind.
 
 * Join the Journey!
 If you're new to Linux or just looking to streamline your configuration management, I encourage you to give this setup a try. Feel free to explore my Dotfiles, borrow ideas, and reach out with any questions. Let's make our computing environments as efficient and enjoyable as possible!

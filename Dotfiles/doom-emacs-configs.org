@@ -3,15 +3,15 @@
 #+date: \today
 
 * Table of Content
-- [[Introduction][Introduction]]
-- [[init.el][init.el]]
-- [[config.el]]
-  - [[Set Author Information]]
+- [[#Introduction][Introduction]]
+- [[#init.el][init.el]]
+- [[config.el][config.el]]
+  - [[Set]]
   - [[Load and initialize pdf-tools]]
   - [[Start Emacs in fullscreen mode]]
   - [[Set author information for AUCTeX]]
   - [[Enable Org mode and LaTeX packages]]
-  - [[Example: Setting the default font]]
+  - [[#Example-setting-the-default-font][Example: Setting the default font]]
   - [[Example: Enabling icons and setting the height]]
   - [[Enable line numbers]]
   - [[Disable toolbar and scrollbar]]
@@ -31,12 +31,12 @@
 - [[packages.el]]
   - [[Installed Packages]]
 
-* Introduction
+* <<introduction>>Introduction
 Welcome to my Doom Emacs configuration! This document is both a configuration file for Emacs and a demonstration of literate programming using Org-mode. By structuring my Emacs configuration in this way, I can combine detailed documentation with executable code, making it easier to maintain and share with others.
 
 This is my first attempt at setting up a personalized Emacs configuration using Doom Emacs and Org-mode. By using the power of Org-mode, I can keep my configuration well-documented and organized. The tangling feature in Org-mode allows me to extract the Emacs Lisp code from this document and generate a config.el file that Doom Emacs can use.
 
-** init.el
+** <<init.el>>init.el
 #+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/init.el
 
 ;; init.el -*- lexical-binding: t; -*-
@@ -238,7 +238,7 @@ This is my first attempt at setting up a personalized Emacs configuration using 
 
 #+end_src
 
-** config.el
+** <<config.el>>config.el
 #+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
 
 ;;; $DOOMDIR/config.el -*- lexical-binding: t; -*-
@@ -321,7 +321,7 @@ This is my first attempt at setting up a personalized Emacs configuration using 
 #+end_src
 
 
-*** Set Author Information
+*** <<set-author-information>>Set Author Information
 #+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
 (setq user-full-name "Rob Alicea"
       user-mail-address "train@idoneitatemlife.com")
@@ -329,7 +329,7 @@ This is my first attempt at setting up a personalized Emacs configuration using 
 (setq doom-theme 'doom-molokai)
 #+end_src
 
-*** Load and initialize pdf-tools
+*** <<load-and-initialize-pdf-tools>>Load and initialize pdf-tools
 #+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
 (use-package pdf-tools
   :defer t
@@ -396,7 +396,7 @@ This is my first attempt at setting up a personalized Emacs configuration using 
   )
 #+end_src
 
-*** Example: Setting the default font
+*** <<Example-setting-the-default-font>>Example: Setting the default font
 #+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
 (setq doom-font (font-spec :family "Fira Code" :size 16 :weight 'regular))
 (setq doom-variable-pitch-font (font-spec :family "Arial" :size 16))

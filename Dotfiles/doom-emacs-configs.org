@@ -4,8 +4,8 @@
 
 * Table of Content
 - [[#introduction][Introduction]]
-- [[#init-el][Init File]]
-- [[#config-el][Config File]]
+- [[#init-file][Init File]]
+- [[#config-file][Config File]]
   - [[#set-author-information][Author Information]]
   - [[#load-and-initialize-pdf-tools][PDF Tools]]
   - [[#start-emacs-in-fullscreen-mode][Always Open In Full Screen Mode]]
@@ -36,7 +36,7 @@ Welcome to my Doom Emacs configuration! This document is both a configuration fi
 
 This is my first attempt at setting up a personalized Emacs configuration using Doom Emacs and Org-mode. By using the power of Org-mode, I can keep my configuration well-documented and organized. The tangling feature in Org-mode allows me to extract the Emacs Lisp code from this document and generate a config.el file that Doom Emacs can use.
 
-** init.el
+** Init File
 #+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/init.el
 
 ;; init.el -*- lexical-binding: t; -*-
@@ -238,7 +238,7 @@ This is my first attempt at setting up a personalized Emacs configuration using 
 
 #+end_src
 
-** config.el
+** Config File
 #+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
 
 ;;; $DOOMDIR/config.el -*- lexical-binding: t; -*-

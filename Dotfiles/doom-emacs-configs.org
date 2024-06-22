@@ -1,5 +1,5 @@
 #+title: Doom Emacs Configuration File
-#+TOC: headlines 2
+#+TOC: headlines 5
 
 
 * Introduction

@@ -1,7 +1,7 @@
 #+title: Fedora 40 System Maintenance Script
+#+author: Rob Alicea
+#+date: \today
 
-
-* Fedora 40 System Maintenance Script
 This script is designed to perform routine maintenance on a Fedora 40 system. Regular maintenance ensures that your system runs smoothly, remains secure, and performs optimally. The script includes essential tasks such as updating the system, cleaning up unnecessary files, checking for disk errors, verifying the status of critical services, and more.
 
 ** Table of Contents

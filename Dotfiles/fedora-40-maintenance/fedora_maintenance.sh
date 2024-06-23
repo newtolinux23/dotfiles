@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # Script for Fedora 40 System Maintenance
-# Script Description: This Bash script is designed to perform essential maintenance tasks on a Fedora 40 system. The script automates a series of routine operations to ensure the system remains up-to-date, secure, and running efficiently.
 
 # Function to print a message
 function print_message {

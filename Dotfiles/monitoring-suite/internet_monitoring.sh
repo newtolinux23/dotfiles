@@ -35,6 +35,12 @@ start_monitoring() {
     touch "$LOG_DIR/connection_dropouts_log.txt"
     touch "$LOG_DIR/service_outages_log.txt"
 
+    echo "Starting connection dropouts monitoring..."
+    run_connection_dropouts &
+
+    echo "Starting service outages monitoring..."
+    run_service_outages &
+
     echo "Starting monitoring suite..."
     # Loop to continuously perform tests every 30 minutes
     while true; do
@@ -67,7 +73,6 @@ run_latency_check() {
 run_connection_dropouts() {
     LOG_FILE="$LOG_DIR/connection_dropouts_log.txt"
     TARGET="8.8.8.8"
-    echo "Starting connection dropouts monitoring..."
     while true; do
         timeout 5s ping -c 1 $TARGET > /dev/null 2>&1
         if [ $? -ne 0 ]; then
@@ -81,7 +86,6 @@ run_connection_dropouts() {
 run_service_outages() {
     LOG_FILE="$LOG_DIR/service_outages_log.txt"
     TARGET="8.8.8.8"
-    echo "Starting service outages monitoring..."
     while true; do
         timeout 5s ping -c 1 $TARGET > /dev/null 2>&1
         if [ $? -ne 0 ]; then
@@ -105,25 +109,22 @@ run_service_outages() {
 create_master_log() {
     MASTER_LOG="$LOG_DIR/master_log.txt"
     echo "Creating master log..."
-    echo "Internet Monitoring Log - $(date)" > $MASTER_LOG
-    echo "----------------------------------" >> $MASTER_LOG
-
-    echo "Internet Speed Test Log" >> $MASTER_LOG
-    cat "$LOG_DIR/internet_speed_log.txt" >> $MASTER_LOG
-    echo "----------------------------------" >> $MASTER_LOG
-
-    echo "Latency Test Log" >> $MASTER_LOG
-    cat "$LOG_DIR/internet_latency_log.txt" >> $MASTER_LOG
-    echo "----------------------------------" >> $MASTER_LOG
-
-    echo "Connection Dropouts Log" >> $MASTER_LOG
-    cat "$LOG_DIR/connection_dropouts_log.txt" >> $MASTER_LOG
-    echo "----------------------------------" >> $MASTER_LOG
-
-    echo "Service Outages Log" >> $MASTER_LOG
-    cat "$LOG_DIR/service_outages_log.txt" >> $MASTER_LOG
-    echo "----------------------------------" >> $MASTER_LOG
-
+    {
+        echo "Internet Monitoring Log - $(date)"
+        echo "----------------------------------"
+        echo "Internet Speed Test Log"
+        cat "$LOG_DIR/internet_speed_log.txt"
+        echo "----------------------------------"
+        echo "Latency Test Log"
+        cat "$LOG_DIR/internet_latency_log.txt"
+        echo "----------------------------------"
+        echo "Connection Dropouts Log"
+        cat "$LOG_DIR/connection_dropouts_log.txt"
+        echo "----------------------------------"
+        echo "Service Outages Log"
+        cat "$LOG_DIR/service_outages_log.txt"
+        echo "----------------------------------"
+    } > $MASTER_LOG
     echo "Master log created at $MASTER_LOG"
 }
 
@@ -139,10 +140,6 @@ convert_to_pdf() {
         echo "Pandoc is not installed. Install pandoc to convert the log to PDF."
     fi
 }
-
-# Start connection dropouts and service outages monitoring in background
-run_connection_dropouts &
-run_service_outages &
 
 # Start monitoring suite
 start_monitoring

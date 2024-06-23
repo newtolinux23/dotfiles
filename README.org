@@ -1,8 +1,9 @@
-#+TITLE: My Configurations
+#+TITLE: Welcome to My Dotfiles Repository!
 #+AUTHOR: Rob Alicea
 #+DATE: <2024-06-22 Sat>
 
-* Welcome to My Dotfiles Repository!
+
+
 Hey there! 👋 Welcome to my Dotfiles repository, a collection of all my configuration files to ensure I never lose my setup and can easily recreate it on any Linux build. This repository is organized in Org-mode, a powerful tool I've recently discovered thanks to DT's YouTube channel and others in the community.
 
 * Why Dotfiles?

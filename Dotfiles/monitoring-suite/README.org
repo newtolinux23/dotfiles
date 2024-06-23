@@ -1,6 +1,3 @@
-#+TITLE: Internet Monitoring Suite
-#+AUTHOR: Rob Alicea
-#+DATE: <2024-06-23>
 #+STARTUP: showall
 #+OPTIONS: toc:2
 #+INFOJS_OPT: view:info toc:tdepth:2
@@ -8,7 +5,10 @@
 <p><strong>Estimated Reading Time:</strong> 10 minutes</p>
 #+END_HTML
 
-This document describes how to set up and use the Internet Monitoring Suite to continuously monitor your internet connection and log results for better communication with your ISP.
+* Internet Monitoring Suite
+*Author:* Rob Alicea
+*Date:* <2024-06-23>
+*Description:* This document describes how to set up and use the Internet Monitoring Suite to continuously monitor your internet connection and log results for better communication with your ISP.
 
 ** Table of Contents
 - [[#introduction][Introduction]]

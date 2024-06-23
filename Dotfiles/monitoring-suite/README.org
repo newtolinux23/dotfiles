@@ -1,0 +1,186 @@
+#+TITLE: Internet Monitoring Suite
+#+AUTHOR: Rob Alicea
+#+DESCRIPTION: A suite of scripts designed to monitor internet performance and detect issues.
+#+DATE: <2024-06-22>
+#+STARTUP: showall
+#+OPTIONS: toc:nil
+#+READINGTIME: 10 minutes
+
+
+This document describes a suite of scripts designed to monitor internet performance and detect issues. The suite includes tests for internet speed, latency, packet loss, traceroute, connection dropouts, and service outages. By regularly running these scripts and logging the results, you can gather comprehensive evidence to address issues with your ISP.
+
+** Table of Contents
+- [[#overview][Overview]]
+- [[#individual-scripts][Individual Scripts]]
+  - [[#check_internet_speedsh][check_internet_speed.sh]]
+  - [[#check_latencysh][check_latency.sh]]
+  - [[#check_traceroutesh][check_traceroute.sh]]
+  - [[#monitor_connection_dropoutssh][monitor_connection_dropouts.sh]]
+  - [[#monitor_service_outagessh][monitor_service_outages.sh]]
+- [[#master-script][Master Script]]
+- [[#scheduling-with-cron][Scheduling with Cron]]
+
+* Overview
+The internet monitoring suite consists of several scripts that perform different tests and log the results. These logs can be used to identify and document internet performance issues, helping you build a strong case against your ISP.
+
+* Individual Scripts
+This section contains the individual scripts that make up the monitoring suite. Each script is designed to perform a specific test or monitor a particular aspect of your internet connection.
+
+** check_internet_speed.sh
+#+begin_src bash :tangle ~/Dotfiles/monitoring-suite/check_internet_speed.sh
+#!/bin/bash
+
+# Check if speedtest-cli is installed, if not, install it
+if ! command -v speedtest-cli &> /dev/null
+then
+    echo "speedtest-cli not found. Installing..."
+    sudo dnf install -y speedtest-cli
+fi
+
+# Log file path
+LOG_FILE="$HOME/internet_speed_log.txt"
+
+# Function to log the current date and time
+log_date() {
+    echo "Date: $(date +"%Y-%m-%d %H:%M:%S")" >> $LOG_FILE
+}
+
+# Function to log speedtest results
+log_speedtest() {
+    echo "Running speedtest..." >> $LOG_FILE
+    speedtest-cli --simple >> $LOG_FILE 2>&1
+    echo "----------------------------------" >> $LOG_FILE
+}
+
+# Log the date and time
+log_date
+
+# Log the speedtest results
+log_speedtest
+
+# Print a message indicating that the test is complete
+echo "Internet speed test completed and logged."
+#+end_src
+
+** check_latency.sh
+#+begin_src bash :tangle ~/Dotfiles/monitoring-suite/check_latency.sh
+#!/bin/bash
+
+LOG_FILE="$HOME/internet_latency_log.txt"
+TARGET="8.8.8.8" # Google's DNS server as a test target
+
+# Log date and time
+echo "Date: $(date +"%Y-%m-%d %H:%M:%S")" >> $LOG_FILE
+echo "Pinging $TARGET..." >> $LOG_FILE
+
+# Ping and log the results
+ping -c 10 $TARGET >> $LOG_FILE 2>&1
+echo "----------------------------------" >> $LOG_FILE
+
+echo "Latency test completed and logged."
+#+end_src
+
+** check_traceroute.sh
+#+begin_src bash :tangle ~/Dotfiles/monitoring-suite/check_traceroute.sh
+#!/bin/bash
+
+LOG_FILE="$HOME/traceroute_log.txt"
+TARGET="8.8.8.8"
+
+# Log date and time
+echo "Date: $(date +"%Y-%m-%d %H:%M:%S")" >> $LOG_FILE
+echo "Traceroute to $TARGET..." >> $LOG_FILE
+
+# Run traceroute and log the results
+traceroute $TARGET >> $LOG_FILE 2>&1
+echo "----------------------------------" >> $LOG_FILE
+
+echo "Traceroute completed and logged."
+#+end_src
+
+** monitor_connection_dropouts.sh
+#+begin_src bash :tangle ~/Dotfiles/monitoring-suite/monitor_connection_dropouts.sh
+#!/bin/bash
+
+LOG_FILE="$HOME/connection_dropouts_log.txt"
+TARGET="8.8.8.8"
+
+while true; do
+    ping -c 1 $TARGET > /dev/null 2>&1
+    if [ $? -ne 0 ]; then
+        echo "Connection dropout detected at $(date +"%Y-%m-%d %H:%M:%S")" >> $LOG_FILE
+    fi
+    sleep 60 # Check every minute
+done
+#+end_src
+
+** monitor_service_outages.sh
+#+begin_src bash :tangle ~/Dotfiles/monitoring-suite/monitor_service_outages.sh
+#!/bin/bash
+
+LOG_FILE="$HOME/service_outages_log.txt"
+TARGET="8.8.8.8"
+
+while true; do
+    ping -c 1 $TARGET > /dev/null 2>&1
+    if [ $? -ne 0 ]; then
+        START=$(date +"%Y-%m-%d %H:%M:%S")
+        echo "Service outage started at $START" >> $LOG_FILE
+        while [ $? -ne 0 ]; do
+            ping -c 1 $TARGET > /dev/null 2>&1
+            sleep 10
+        done
+        END=$(date +"%Y-%m-%d %H:%M:%S")
+        echo "Service outage ended at $END" >> $LOG_FILE
+        DURATION=$(( $(date -d "$END" +%s) - $(date -d "$START" +%s) ))
+        echo "Outage duration: $DURATION seconds" >> $LOG_FILE
+        echo "----------------------------------" >> $LOG_FILE
+    fi
+    sleep 60
+done
+#+end_src
+
+* Master Script
+The master script runs all the individual scripts and initiates continuous monitoring of connection dropouts and service outages.
+
+** monitoring_suite.sh
+#+begin_src bash :tangle ~/Dotfiles/monitoring-suite/monitoring_suite.sh
+#!/bin/bash
+
+# Run Internet Speed Test
+echo "Running Internet Speed Test..."
+/path/to/check_internet_speed.sh
+
+# Run Latency and Packet Loss Test
+echo "Running Latency and Packet Loss Test..."
+/path/to/check_latency.sh
+
+# Run Traceroute Test
+echo "Running Traceroute Test..."
+/path/to/check_traceroute.sh
+
+# Start Monitoring Connection Dropouts in the Background
+echo "Starting Connection Dropouts Monitoring..."
+nohup /path/to/monitor_connection_dropouts.sh &
+
+# Start Monitoring Service Outages in the Background
+echo "Starting Service Outages Monitoring..."
+nohup /path/to/monitor_service_outages.sh &
+
+echo "Monitoring suite initiated."
+#+end_src
+
+* Scheduling with Cron
+To automate the running of the monitoring suite, you can schedule the master script using a cron job.
+
+1. Open the cron job configuration:
+   #+begin_src bash
+   crontab -e
+   #+end_src
+
+2. Add the following line to schedule the master script to run every hour:
+   #+begin_src bash
+   0 * * * * /path/to/monitoring_suite.sh
+   #+end_src
+
+Replace */path/to/* with the actual paths to your scripts. This setup ensures that the monitoring suite runs regularly and logs the necessary data for you to track internet performance issues effectively.

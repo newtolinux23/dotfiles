@@ -1,186 +1,291 @@
 #+TITLE: Internet Monitoring Suite
 #+AUTHOR: Rob Alicea
-#+DESCRIPTION: A suite of scripts designed to monitor internet performance and detect issues.
-#+DATE: <2024-06-22>
+#+DATE: <2024-06-23>
 #+STARTUP: showall
-#+OPTIONS: toc:nil
-#+READINGTIME: 10 minutes
+#+OPTIONS: toc:2
+#+INFOJS_OPT: view:info toc:tdepth:2
+#+BEGIN_HTML
+<p><strong>Estimated Reading Time:</strong> 10 minutes</p>
+#+END_HTML
 
-
-This document describes a suite of scripts designed to monitor internet performance and detect issues. The suite includes tests for internet speed, latency, packet loss, traceroute, connection dropouts, and service outages. By regularly running these scripts and logging the results, you can gather comprehensive evidence to address issues with your ISP.
+* Internet Monitoring Suite
+This document describes how to set up and use the Internet Monitoring Suite to continuously monitor your internet connection and log results for better communication with your ISP.
 
 ** Table of Contents
-- [[#overview][Overview]]
-- [[#individual-scripts][Individual Scripts]]
-  - [[#check_internet_speedsh][check_internet_speed.sh]]
-  - [[#check_latencysh][check_latency.sh]]
-  - [[#check_traceroutesh][check_traceroute.sh]]
-  - [[#monitor_connection_dropoutssh][monitor_connection_dropouts.sh]]
-  - [[#monitor_service_outagessh][monitor_service_outages.sh]]
-- [[#master-script][Master Script]]
-- [[#scheduling-with-cron][Scheduling with Cron]]
+- [[#introduction][Introduction]]
+- [[#requirements][Requirements]]
+- [[#setup][Setup]]
+  - [[#download-the-script][Download the Script]]
+  - [[#make-the-script-executable][Make the Script Executable]]
+  - [[#create-systemd-service][Create systemd Service]]
+- [[#usage][Usage]]
+  - [[#start-the-service][Start the Service]]
+  - [[#check-service-status][Check Service Status]]
+  - [[#view-logs][View Logs]]
+- [[#customization][Customization]]
+  - [[#change-log-directory][Change Log Directory]]
+  - [[#update-check-intervals][Update Check Intervals]]
+- [[#uninstallation][Uninstallation]]
+  - [[#stop-the-service][Stop the Service]]
+  - [[#disable-the-service][Disable the Service]]
+  - [[#remove-the-script-and-service][Remove the Script and Service]]
 
-* Overview
-The internet monitoring suite consists of several scripts that perform different tests and log the results. These logs can be used to identify and document internet performance issues, helping you build a strong case against your ISP.
+* Introduction
+The Internet Monitoring Suite is a script that monitors your internet connection continuously and logs the results. It performs periodic internet speed tests, latency checks, and monitors connection dropouts and service outages. The results are consolidated into a master log and converted to a PDF for easy sharing with your ISP.
 
-* Individual Scripts
-This section contains the individual scripts that make up the monitoring suite. Each script is designed to perform a specific test or monitor a particular aspect of your internet connection.
+* Requirements
+- Fedora 40 or compatible Linux distribution
+- `speedtest-cli`
+- `pandoc`
+- `systemd`
 
-** check_internet_speed.sh
-#+begin_src bash :tangle ~/Dotfiles/monitoring-suite/check_internet_speed.sh
+* Setup
+** Download the Script
+Download the internet monitoring script and save it as ~internet_monitoring.sh~ in the following directory: ~/home/rob/Dotfiles/monitoring-suite~.
+
+#+BEGIN_SRC sh :tangle /home/rob/Dotfiles/monitoring-suite/internet_monitoring.sh
 #!/bin/bash
 
-# Check if speedtest-cli is installed, if not, install it
-if ! command -v speedtest-cli &> /dev/null
-then
-    echo "speedtest-cli not found. Installing..."
-    sudo dnf install -y speedtest-cli
-fi
+# Define PID file and log directory
+PIDFILE="/tmp/internet_monitoring.pid"
+BASE_LOG_DIR="$HOME/internet_monitoring_logs"
 
-# Log file path
-LOG_FILE="$HOME/internet_speed_log.txt"
+# Function to start monitoring
+start_monitoring() {
+    # Ensure the base log directory exists
+    mkdir -p $BASE_LOG_DIR
 
-# Function to log the current date and time
-log_date() {
-    echo "Date: $(date +"%Y-%m-%d %H:%M:%S")" >> $LOG_FILE
+    # Create a new directory for this test run
+    LOG_DIR="$BASE_LOG_DIR/$(date +"%Y-%m-%d_%H-%M-%S")"
+    mkdir -p $LOG_DIR
+
+    # Check if another instance is running, if so, stop it
+    if [ -e $PIDFILE ] && kill -0 $(cat $PIDFILE); then
+        echo "Stopping existing instance..."
+        kill -9 $(cat $PIDFILE)
+        rm -f $PIDFILE
+    fi
+
+    # Write the current PID to the PID file
+    echo $$ > $PIDFILE
+
+    # Trap to ensure the PID file is removed on script exit
+    trap "rm -f $PIDFILE" EXIT
+
+    echo "Starting monitoring suite..."
+    while true; do
+        run_internet_speed_test
+        run_latency_check
+        create_master_log
+        convert_to_pdf
+        sleep 1800  # Wait for 30 minutes before the next run
+    done
 }
 
-# Function to log speedtest results
-log_speedtest() {
-    echo "Running speedtest..." >> $LOG_FILE
-    speedtest-cli --simple >> $LOG_FILE 2>&1
-    echo "----------------------------------" >> $LOG_FILE
+# Function to run internet speed test with timeout
+run_internet_speed_test() {
+    LOG_FILE="$LOG_DIR/internet_speed_log.txt"
+    echo "Running internet speed test..."
+    timeout 30s speedtest-cli --simple >> $LOG_FILE 2>&1 || echo "Speedtest failed or timed out" >> $LOG_FILE
+    echo "Internet speed test completed and logged."
 }
 
-# Log the date and time
-log_date
+# Function to run latency check with timeout
+run_latency_check() {
+    LOG_FILE="$LOG_DIR/internet_latency_log.txt"
+    TARGET="8.8.8.8"
+    echo "Running latency check..."
+    timeout 30s ping -c 10 $TARGET >> $LOG_FILE 2>&1 || echo "Ping failed or timed out" >> $LOG_FILE
+    echo "Latency check completed and logged."
+}
 
-# Log the speedtest results
-log_speedtest
+# Function to monitor connection dropouts
+run_connection_dropouts() {
+    LOG_FILE="$LOG_DIR/connection_dropouts_log.txt"
+    TARGET="8.8.8.8"
+    echo "Starting connection dropouts monitoring..."
+    while true; do
+        timeout 5s ping -c 1 $TARGET > /dev/null 2>&1
+        if [ $? -ne 0 ]; then
+            echo "Connection dropout detected at $(date +"%Y-%m-%d %H:%M:%S")" >> $LOG_FILE
+        fi
+        sleep 60  # Wait for 1 minute before the next check
+    done
+}
 
-# Print a message indicating that the test is complete
-echo "Internet speed test completed and logged."
-#+end_src
+# Function to monitor service outages
+run_service_outages() {
+    LOG_FILE="$LOG_DIR/service_outages_log.txt"
+    TARGET="8.8.8.8"
+    echo "Starting service outages monitoring..."
+    while true; do
+        timeout 5s ping -c 1 $TARGET > /dev/null 2>&1
+        if [ $? -ne 0 ]; then
+            START=$(date +"%Y-%m-%d %H:%M:%S")
+            echo "Service outage started at $START" >> $LOG_FILE
+            while [ $? -ne 0 ]; do
+                timeout 5s ping -c 1 $TARGET > /dev/null 2>&1
+                sleep 10
+            done
+            END=$(date +"%Y-%m-%d %H:%M:%S")
+            echo "Service outage ended at $END" >> $LOG_FILE
+            DURATION=$(( $(date -d "$END" +%s) - $(date -d "$START" +%s) ))
+            echo "Outage duration: $DURATION seconds" >> $LOG_FILE
+            echo "----------------------------------" >> $LOG_FILE
+        fi
+        sleep 60  # Wait for 1 minute before the next check
+    done
+}
 
-** check_latency.sh
-#+begin_src bash :tangle ~/Dotfiles/monitoring-suite/check_latency.sh
-#!/bin/bash
+# Function to create a master log
+create_master_log() {
+    MASTER_LOG="$LOG_DIR/master_log.txt"
+    echo "Creating master log..."
+    echo "Internet Monitoring Log - $(date)" > $MASTER_LOG
+    echo "----------------------------------" >> $MASTER_LOG
 
-LOG_FILE="$HOME/internet_latency_log.txt"
-TARGET="8.8.8.8" # Google's DNS server as a test target
+    echo "Internet Speed Test Log" >> $MASTER_LOG
+    cat "$LOG_DIR/internet_speed_log.txt" >> $MASTER_LOG
+    echo "----------------------------------" >> $MASTER_LOG
 
-# Log date and time
-echo "Date: $(date +"%Y-%m-%d %H:%M:%S")" >> $LOG_FILE
-echo "Pinging $TARGET..." >> $LOG_FILE
+    echo "Latency Test Log" >> $MASTER_LOG
+    cat "$LOG_DIR/internet_latency_log.txt" >> $MASTER_LOG
+    echo "----------------------------------" >> $MASTER_LOG
 
-# Ping and log the results
-ping -c 10 $TARGET >> $LOG_FILE 2>&1
-echo "----------------------------------" >> $LOG_FILE
+    echo "Connection Dropouts Log" >> $MASTER_LOG
+    cat "$LOG_DIR/connection_dropouts_log.txt" >> $MASTER_LOG
+    echo "----------------------------------" >> $MASTER_LOG
 
-echo "Latency test completed and logged."
-#+end_src
+    echo "Service Outages Log" >> $MASTER_LOG
+    cat "$LOG_DIR/service_outages_log.txt" >> $MASTER_LOG
+    echo "----------------------------------" >> $MASTER_LOG
 
-** check_traceroute.sh
-#+begin_src bash :tangle ~/Dotfiles/monitoring-suite/check_traceroute.sh
-#!/bin/bash
+    echo "Master log created at $MASTER_LOG"
+}
 
-LOG_FILE="$HOME/traceroute_log.txt"
-TARGET="8.8.8.8"
-
-# Log date and time
-echo "Date: $(date +"%Y-%m-%d %H:%M:%S")" >> $LOG_FILE
-echo "Traceroute to $TARGET..." >> $LOG_FILE
-
-# Run traceroute and log the results
-traceroute $TARGET >> $LOG_FILE 2>&1
-echo "----------------------------------" >> $LOG_FILE
-
-echo "Traceroute completed and logged."
-#+end_src
-
-** monitor_connection_dropouts.sh
-#+begin_src bash :tangle ~/Dotfiles/monitoring-suite/monitor_connection_dropouts.sh
-#!/bin/bash
-
-LOG_FILE="$HOME/connection_dropouts_log.txt"
-TARGET="8.8.8.8"
-
-while true; do
-    ping -c 1 $TARGET > /dev/null 2>&1
-    if [ $? -ne 0 ]; then
-        echo "Connection dropout detected at $(date +"%Y-%m-%d %H:%M:%S")" >> $LOG_FILE
+# Function to convert master log to PDF
+convert_to_pdf() {
+    MASTER_LOG="$LOG_DIR/master_log.txt"
+    PDF_FILE="$LOG_DIR/master_log.pdf"
+    echo "Converting master log to PDF..."
+    if command -v pandoc &> /dev/null; then
+        pandoc "$MASTER_LOG" -o "$PDF_FILE"
+        echo "PDF created at $PDF_FILE"
+    else
+        echo "Pandoc is not installed. Install pandoc to convert the log to PDF."
     fi
-    sleep 60 # Check every minute
-done
-#+end_src
+}
 
-** monitor_service_outages.sh
-#+begin_src bash :tangle ~/Dotfiles/monitoring-suite/monitor_service_outages.sh
-#!/bin/bash
+# Start connection dropouts and service outages monitoring in background
+run_connection_dropouts &
+run_service_outages &
 
-LOG_FILE="$HOME/service_outages_log.txt"
-TARGET="8.8.8.8"
+# Start monitoring suite
+start_monitoring
+#+END_SRC
 
-while true; do
-    ping -c 1 $TARGET > /dev/null 2>&1
-    if [ $? -ne 0 ]; then
-        START=$(date +"%Y-%m-%d %H:%M:%S")
-        echo "Service outage started at $START" >> $LOG_FILE
-        while [ $? -ne 0 ]; do
-            ping -c 1 $TARGET > /dev/null 2>&1
-            sleep 10
-        done
-        END=$(date +"%Y-%m-%d %H:%M:%S")
-        echo "Service outage ended at $END" >> $LOG_FILE
-        DURATION=$(( $(date -d "$END" +%s) - $(date -d "$START" +%s) ))
-        echo "Outage duration: $DURATION seconds" >> $LOG_FILE
-        echo "----------------------------------" >> $LOG_FILE
-    fi
-    sleep 60
-done
-#+end_src
+** Make the Script Executable
+Make the script executable by running the following command in the terminal:
+#+BEGIN_SRC sh
+chmod +x /home/rob/Dotfiles/monitoring-suite/internet_monitoring.sh
+#+END_SRC
 
-* Master Script
-The master script runs all the individual scripts and initiates continuous monitoring of connection dropouts and service outages.
+** Create systemd Service
+Create a systemd service to manage the script and ensure it starts on reboot.
 
-** monitoring_suite.sh
-#+begin_src bash :tangle ~/Dotfiles/monitoring-suite/monitoring_suite.sh
-#!/bin/bash
+1. Create the systemd service file:
+#+BEGIN_SRC sh
+sudo nano /etc/systemd/system/internet_monitoring.service
+#+END_SRC
 
-# Run Internet Speed Test
-echo "Running Internet Speed Test..."
-/path/to/check_internet_speed.sh
+2. Add the following content to the service file, replacing ~your_username~ with your actual username:
+#+BEGIN_SRC ini
+[Unit]
+Description=Internet Monitoring Service
+After=network.target
 
-# Run Latency and Packet Loss Test
-echo "Running Latency and Packet Loss Test..."
-/path/to/check_latency.sh
+[Service]
+ExecStart=/home/rob/Dotfiles/monitoring-suite/internet_monitoring.sh
+WorkingDirectory=/home/rob/Dotfiles/monitoring-suite
+StandardOutput=journal
+StandardError=journal
+Restart=always
+User=rob
+Group=rob
 
-# Run Traceroute Test
-echo "Running Traceroute Test..."
-/path/to/check_traceroute.sh
+[Install]
+WantedBy=multi-user.target
+#+END_SRC
 
-# Start Monitoring Connection Dropouts in the Background
-echo "Starting Connection Dropouts Monitoring..."
-nohup /path/to/monitor_connection_dropouts.sh &
+3. Enable and start the service:
+#+BEGIN_SRC sh
+sudo systemctl enable internet_monitoring.service
+sudo systemctl start internet_monitoring.service
+#+END_SRC
 
-# Start Monitoring Service Outages in the Background
-echo "Starting Service Outages Monitoring..."
-nohup /path/to/monitor_service_outages.sh &
+4. Check the status of the service:
+#+BEGIN_SRC sh
+sudo systemctl status internet_monitoring.service
+#+END_SRC
 
-echo "Monitoring suite initiated."
-#+end_src
+* Usage
+** Start the Service
+If the service is not already running, you can start it with:
+#+BEGIN_SRC sh
+sudo systemctl start internet_monitoring.service
+#+END_SRC
 
-* Scheduling with Cron
-To automate the running of the monitoring suite, you can schedule the master script using a cron job.
+** Check Service Status
+To check the status of the service, use:
+#+BEGIN_SRC sh
+sudo systemctl status internet_monitoring.service
+#+END_SRC
 
-1. Open the cron job configuration:
-   #+begin_src bash
-   crontab -e
-   #+end_src
+** View Logs
+Logs are stored in the ~/internet_monitoring_logs~ directory. Each run will create a new subdirectory with timestamped logs.
 
-2. Add the following line to schedule the master script to run every hour:
-   #+begin_src bash
-   0 * * * * /path/to/monitoring_suite.sh
-   #+end_src
+* Customization
+** Change Log Directory
+To change the log directory, modify the ~BASE_LOG_DIR~ variable in the script.
 
-Replace */path/to/* with the actual paths to your scripts. This setup ensures that the monitoring suite runs regularly and logs the necessary data for you to track internet performance issues effectively.
+** Update Check Intervals
+To update the check intervals, modify the ~sleep~ durations in the script. For example, to change the internet speed test and latency check intervals, modify the following line in the ~start_monitoring~ function:
+#+BEGIN_SRC sh
+sleep 1800  # Wait for 30 minutes before the next run
+#+END_SRC
+
+For connection dropouts and service outages checks, modify the ~sleep~ duration in the respective functions:
+#+BEGIN_SRC sh
+sleep 60  # Wait for 1 minute before the next check
+#+END_SRC
+
+* Uninstallation
+** Stop the Service
+To stop the service, use:
+#+BEGIN_SRC sh
+sudo systemctl stop internet_monitoring.service
+#+END_SRC
+
+** Disable the Service
+To disable the service, use:
+#+BEGIN_SRC sh
+sudo systemctl disable internet_monitoring.service
+#+END_SRC
+
+** Remove the Script and Service
+1. Remove the script file:
+#+BEGIN_SRC sh
+rm /home/rob/Dotfiles/monitoring-suite/internet_monitoring.sh
+#+END_SRC
+
+2. Remove the systemd service file:
+#+BEGIN_SRC sh
+sudo rm /etc/systemd/system/internet_monitoring.service
+#+END_SRC
+
+3. Reload systemd to apply changes:
+#+BEGIN_SRC sh
+sudo systemctl daemon-reload
+#+END_SRC
+
+By following these instructions, you can set up, customize, and manage the Internet Monitoring Suite on your Linux system. The script will continuously monitor your internet connection, log results, and provide a PDF summary for easy sharing with your ISP.

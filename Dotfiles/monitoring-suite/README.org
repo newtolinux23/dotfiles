@@ -6,9 +6,9 @@
 #+END_HTML
 
 * Internet Monitoring Suite
-*Author:* Rob Alicea
-*Date:* <2024-06-23>
-*Description:* This document describes how to set up and use the Internet Monitoring Suite to continuously monitor your internet connection and log results for better communication with your ISP.
+**** Author: Rob Alicea
+**** Date: <2024-06-23>
+**** Description: This document describes how to set up and use the Internet Monitoring Suite to continuously monitor your internet connection and log results for better communication with your ISP.
 
 ** Table of Contents
 - [[#introduction][Introduction]]

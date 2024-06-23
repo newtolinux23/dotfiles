@@ -8,7 +8,6 @@
 <p><strong>Estimated Reading Time:</strong> 10 minutes</p>
 #+END_HTML
 
-* Internet Monitoring Suite
 This document describes how to set up and use the Internet Monitoring Suite to continuously monitor your internet connection and log results for better communication with your ISP.
 
 ** Table of Contents

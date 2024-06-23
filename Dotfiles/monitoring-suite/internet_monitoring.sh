@@ -1,10 +1,5 @@
 #!/bin/bash
 
-# Internet Monitoring Suite
-# This script continuously monitors your internet connection, performs periodic tests, and logs the results.
-# It includes internet speed tests, latency checks, connection dropouts monitoring, and service outages monitoring.
-# The results are consolidated into a master log and converted to a PDF for easy sharing with your ISP.
-
 # Define PID file and log directory
 PIDFILE="/tmp/internet_monitoring.pid"
 BASE_LOG_DIR="$HOME/internet_monitoring_logs"

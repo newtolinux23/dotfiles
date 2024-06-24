@@ -2,13 +2,13 @@
 #+OPTIONS: toc:2
 #+INFOJS_OPT: view:info toc:tdepth:2
 
+**** Author: Rob Alicea
+**** Date: <2024-06-23>
+**** Description: This document describes how to set up and use the Internet Monitoring Suite to continuously monitor your internet connection and log results for better communication with your ISP.
+
 * Internet Monitoring Setup
 
-This document describes how to set up an internet monitoring script that runs periodically using cron. The script ensures that only one instance runs at a time.
-
-** Author: Rob Alicea
-** Date: <2024-06-23>
-** Description: This document describes how to set up and use the Internet Monitoring Suite to continuously monitor your internet connection and log results for better communication with your ISP.
+This document describes how to set up an internet monitoring script that runs periodically using cron and Docker with Podman. The script ensures that only one instance runs at a time and organizes data into a structured file system.
 
 ** Table of Contents
 - [[#introduction][Introduction]]
@@ -16,6 +16,8 @@ This document describes how to set up an internet monitoring script that runs pe
 - [[#bash-script][Bash Script]]
 - [[#setting-up-the-cron-job][Setting Up the Cron Job]]
 - [[#handling-pc-downtime][Handling PC Downtime with Anacron]]
+- [[#docker-setup][Docker Setup]]
+- [[#advantages-of-podman][Advantages of Using Podman Rootless Containers vs. Docker]]
 
 * Introduction
 
@@ -28,6 +30,7 @@ The purpose of this setup is to monitor your internet connection, log the result
 - `pandoc`
 - `cron`
 - `anacron` (optional for handling downtime)
+- `podman` for containerization
 
 * Bash Script
 
@@ -226,8 +229,63 @@ If the PC is turned off or asleep when the cron job is scheduled to run, the job
 
 This setup will ensure that your internet monitoring script runs periodically and logs the necessary data, even if the PC is turned off during the scheduled time.
 
-** Notes for New Users
-- Make sure all required tools (`speedtest-cli`, `pandoc`, `cron`, `anacron`) are installed.
-- Ensure that the script has executable permissions using `chmod +x`.
-- Use `crontab -e` to edit the cron jobs.
-- Check logs and outputs
+* Docker Setup
+
+To set up the internet monitoring script using Docker with Podman, follow these steps:
+
+1. Create a `Dockerfile` in the same directory as your script (`/home/rob/Dotfiles/monitoring-suite/`).
+
+#+BEGIN_SRC Dockerfile
+# Use a base image with Fedora
+FROM fedora:latest
+
+# Install necessary packages
+RUN dnf -y update && \
+    dnf -y install speedtest-cli pandoc cronie
+
+# Copy the script into the container
+COPY internet_monitoring.sh /usr/local/bin/internet_monitoring.sh
+
+# Make the script executable
+RUN chmod +x /usr/local/bin/internet_monitoring.sh
+
+# Set up a cron job
+RUN echo "0 */4 * * * /usr/local/bin/internet_monitoring.sh >> /var/log/internet_monitoring.log 2>&1" > /etc/cron.d/internet_monitoring && \
+    crontab /etc/cron.d/internet_monitoring
+
+# Set the entrypoint to cron
+ENTRYPOINT ["crond", "-n"]
+#+END_SRC
+
+2. Build the Docker image with Podman:
+
+   Navigate to the directory containing your `Dockerfile` and run the following command to build your Docker image:
+
+   #+BEGIN_SRC sh
+   cd /home/rob/Dotfiles/monitoring-suite
+   podman build -t internet-monitoring-suite .
+   #+END_SRC
+
+3. Run the Docker container with Podman:
+
+   After building the image, you can run the container using the following command:
+
+   #+BEGIN_SRC sh
+   podman run -d --name internet-monitoring-suite internet-monitoring-suite
+   #+END_SRC
+
+* Advantages of Using Podman Rootless Containers vs. Docker
+
+Podman is a container management tool similar to Docker but with some key differences, particularly in how it handles security and rootless containers.
+
+1. **Rootless Operation**: Podman allows you to run containers without requiring root privileges. This enhances security as it reduces the risk of system compromise through container vulnerabilities.
+
+2. **Docker Compatibility**: Podman uses the same container image format as Docker, making it easy to transition between the two tools. Most Docker commands also work with Podman.
+
+3. **Daemon-less Architecture**: Unlike Docker, which relies on a central daemon to manage containers, Podman uses a daemon-less architecture. Each container runs as a child process of the Podman command, which improves resource usage and stability.
+
+4. **Integration with Systemd**: Podman can generate systemd unit files for containers, allowing better integration with the system's service management. This makes it easier to manage and automate container lifecycle operations.
+
+5. **Security**: Podman's rootless mode and integration with SELinux (on supported systems) provide enhanced security. Containers run with user namespaces and other Linux security features that help isolate them from the host system.
+
+In summary, Podman offers a more secure and flexible container management experience, making it a suitable alternative to Docker, especially for rootless container operations.

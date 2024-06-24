@@ -345,8 +345,8 @@ To ensure the monitoring script runs at regular intervals, set up a cron job to 
 
 ** Accessing Logs and PDF Files
 
-- **Logs Directory**: The logs and PDF files are stored in `/home/rob/internet_monitoring_logs` within the container.
-- **Mounted Directory**: The files are also available in the directory you specified on your host machine.
+- *Logs Directory*: The logs and PDF files are stored in `/home/rob/internet_monitoring_logs` within the container.
+- *Mounted Directory*: The files are also available in the directory you specified on your host machine.
 
 ** Conclusion
 
@@ -354,16 +354,16 @@ This setup allows you to automate internet monitoring tasks using Podman contain
 
 * Advantages of Using Podman Rootless Containers vs Docker
 
-Podman is a container management tool similar to Docker but with some key differences, particularly in how it handles security and rootless containers.
+~Podman~ is a container management tool similar to ~Docker~ but with some key differences, particularly in how it handles security and rootless containers.
 
-1. **Rootless Operation**: Podman allows you to run containers without requiring root privileges. This enhances security as it reduces the risk of system compromise through container vulnerabilities.
+1. *Rootless Operation*: Podman allows you to run containers without requiring root privileges. This enhances security as it reduces the risk of system compromise through container vulnerabilities.
 
-2. **Docker Compatibility**: Podman uses the same container image format as Docker, making it easy to transition between the two tools. Most Docker commands also work with Podman.
+2. *Docker Compatibility*: Podman uses the same container image format as Docker, making it easy to transition between the two tools. Most Docker commands also work with Podman.
 
-3. **Daemon-less Architecture**: Unlike Docker, which relies on a central daemon to manage containers, Podman uses a daemon-less architecture. Each container runs as a child process of the Podman command, which improves resource usage and stability.
+3. *Daemon-less Architecture*: Unlike Docker, which relies on a central daemon to manage containers, Podman uses a daemon-less architecture. Each container runs as a child process of the Podman command, which improves resource usage and stability.
 
-4. **Integration with Systemd**: Podman can generate systemd unit files for containers, allowing better integration with the system's service management. This makes it easier to manage and automate container lifecycle operations.
+4. *Integration with Systemd*: Podman can generate systemd unit files for containers, allowing better integration with the system's service management. This makes it easier to manage and automate container lifecycle operations.
 
-5. **Security**: Podman's rootless mode and integration with SELinux (on supported systems) provide enhanced security. Containers run with user namespaces and other Linux security features that help isolate them from the host system.
+5. *Security*: Podman's rootless mode and integration with SELinux (on supported systems) provide enhanced security. Containers run with user namespaces and other Linux security features that help isolate them from the host system.
 
 In summary, Podman offers a more secure and flexible container management experience, making it a suitable alternative to Docker, especially for rootless container operations.

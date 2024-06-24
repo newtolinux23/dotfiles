@@ -17,7 +17,7 @@ This document describes how to set up an internet monitoring script that runs pe
 - [[#setting-up-the-cron-job][Setting Up the Cron Job]]
 - [[#handling-pc-downtime][Handling PC Downtime with Anacron]]
 - [[#docker-setup][Docker Setup]]
-- [[#advantages-of-podman][Advantages of Using Podman Rootless Containers vs. Docker]]
+- [[#advantages-of-using-podman-rootless-containers-vs-docker][Advantages of Using Podman Rootless Containers vs. Docker]]
 
 * Introduction
 
@@ -352,7 +352,7 @@ To ensure the monitoring script runs at regular intervals, set up a cron job to 
 
 This setup allows you to automate internet monitoring tasks using Podman containers, ensuring consistent execution and easy access to generated logs and reports. Adjust paths and configurations as needed based on your specific environment and requirements.
 
-* Advantages of Using Podman Rootless Containers vs. Docker
+* Advantages of Using Podman Rootless Containers vs Docker
 
 Podman is a container management tool similar to Docker but with some key differences, particularly in how it handles security and rootless containers.
 

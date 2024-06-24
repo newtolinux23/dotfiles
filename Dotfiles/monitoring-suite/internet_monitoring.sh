@@ -1,4 +1,5 @@
 #!/bin/bash
+#!/bin/bash
 
 # Toggle logging
 LOGGING=true
@@ -12,7 +13,8 @@ echo "Current user: $(whoami)"
 
 # Define a log directory with session timestamp
 SESSION_TIMESTAMP=$(date +'%Y-%m-%d_%H-%M-%S')
-LOG_DIR="$HOME/internet_monitoring_logs/$SESSION_TIMESTAMP"
+LOG_DIR="/home/rob/internet_monitoring_logs/$SESSION_TIMESTAMP"
+echo "Log directory: $LOG_DIR"
 mkdir -p "$LOG_DIR"
 
 # Define a lock file to ensure only one instance runs at a time
@@ -34,9 +36,9 @@ trap "rm -f $LOCKFILE" EXIT
 run_internet_speed_test() {
     echo "Running internet speed test..."
     if command -v speedtest-cli > /dev/null; then
-        speedtest-cli --simple >> "$LOG_DIR/internet_speed_log.txt" 2>&1
+        timeout 60 speedtest-cli --simple >> "$LOG_DIR/internet_speed_log.txt" 2>&1
         if [ $? -ne 0 ]; then
-            echo "Error: speedtest-cli failed" >> "$LOG_DIR/error_log.txt"
+            echo "Error: speedtest-cli failed or timed out" >> "$LOG_DIR/error_log.txt"
         else
             echo "Internet speed test completed and logged."
         fi
@@ -48,9 +50,9 @@ run_internet_speed_test() {
 # Function to perform a latency check
 run_latency_check() {
     echo "Running latency check..."
-    ping -c 10 8.8.8.8 >> "$LOG_DIR/internet_latency_log.txt" 2>&1
+    timeout 60 ping -c 10 8.8.8.8 >> "$LOG_DIR/internet_latency_log.txt" 2>&1
     if [ $? -ne 0 ]; then
-        echo "Error: ping failed" >> "$LOG_DIR/error_log.txt"
+        echo "Error: ping failed or timed out" >> "$LOG_DIR/error_log.txt"
     else
         echo "Latency check completed and logged."
     fi
@@ -59,26 +61,46 @@ run_latency_check() {
 # Function to perform jitter measurement
 run_jitter_measurement() {
     echo "Running jitter measurement..."
-    ping -c 100 8.8.8.8 | awk -F'=' '/time=/ {print $NF}' | sed 's/ ms//' > "$LOG_DIR/jitter_log.txt"
+    timeout 60 ping -c 100 8.8.8.8 | awk -F'=' '/time=/ {print $NF}' | sed 's/ ms//' > "$LOG_DIR/jitter_log.txt"
     awk '{delta=$1-last; last=$1; if (NR>1) {print (delta<0 ? -delta : delta); sum+=delta}} END {print "Average jitter:", sum/NR, "ms"}' "$LOG_DIR/jitter_log.txt" >> "$LOG_DIR/internet_latency_log.txt"
+    if [ $? -ne 0 ]; then
+        echo "Error: jitter measurement failed or timed out" >> "$LOG_DIR/error_log.txt"
+    else
+        echo "Jitter measurement completed and logged."
+    fi
 }
 
 # Function to measure packet loss
 measure_packet_loss() {
     echo "Measuring packet loss..."
-    ping -c 100 8.8.8.8 | grep 'packet loss' >> "$LOG_DIR/internet_latency_log.txt"
+    timeout 60 ping -c 100 8.8.8.8 | grep 'packet loss' >> "$LOG_DIR/internet_latency_log.txt"
+    if [ $? -ne 0 ]; then
+        echo "Error: packet loss measurement failed or timed out" >> "$LOG_DIR/error_log.txt"
+    else
+        echo "Packet loss measurement completed and logged."
+    fi
 }
 
 # Function to run traceroute
 run_traceroute() {
     echo "Running traceroute..."
-    traceroute 8.8.8.8 > "$LOG_DIR/traceroute_log.txt"
+    timeout 60 traceroute 8.8.8.8 > "$LOG_DIR/traceroute_log.txt"
+    if [ $? -ne 0 ]; then
+        echo "Error: traceroute failed or timed out" >> "$LOG_DIR/error_log.txt"
+    else
+        echo "Traceroute completed and logged."
+    fi
 }
 
 # Function to measure DNS resolution time
 measure_dns_resolution_time() {
     echo "Measuring DNS resolution time..."
     dig google.com | grep 'Query time' >> "$LOG_DIR/dns_resolution_log.txt"
+    if [ $? -ne 0 ]; then
+        echo "Error: DNS resolution time measurement failed" >> "$LOG_DIR/error_log.txt"
+    else
+        echo "DNS resolution time measurement completed and logged."
+    fi
 }
 
 # Function to measure latency to multiple endpoints
@@ -86,7 +108,12 @@ measure_multi_endpoint_latency() {
     echo "Measuring latency to multiple endpoints..."
     for host in google.com cloudflare.com facebook.com; do
         echo "Pinging $host" >> "$LOG_DIR/multi_endpoint_latency_log.txt"
-        ping -c 10 $host | grep 'time=' >> "$LOG_DIR/multi_endpoint_latency_log.txt"
+        timeout 60 ping -c 10 $host | grep 'time=' >> "$LOG_DIR/multi_endpoint_latency_log.txt"
+        if [ $? -ne 0 ]; then
+            echo "Error: ping to $host failed or timed out" >> "$LOG_DIR/error_log.txt"
+        else
+            echo "Ping to $host completed and logged."
+        fi
     done
 }
 
@@ -129,7 +156,7 @@ create_master_log() {
 convert_master_log_to_pdf() {
     echo "Converting master log to PDF..."
     if command -v pandoc > /dev/null; then
-        pandoc "$LOG_DIR/master_log.txt" -o "$LOG_DIR/master_log.pdf"
+        pandoc "$LOG_DIR/master_log.txt" -o "$LOG_DIR/master_log.pdf" --pdf-engine=pdflatex
         if [ $? -ne 0 ]; then
             echo "Error: pandoc failed to create PDF" >> "$LOG_DIR/error_log.txt"
         else

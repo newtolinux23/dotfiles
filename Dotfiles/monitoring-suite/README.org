@@ -38,6 +38,7 @@ The following bash script performs the internet monitoring tasks. It logs the re
 
 #+BEGIN_SRC sh :tangle /home/rob/Dotfiles/monitoring-suite/internet_monitoring.sh
 #!/bin/bash
+#!/bin/bash
 
 # Toggle logging
 LOGGING=true
@@ -51,7 +52,8 @@ echo "Current user: $(whoami)"
 
 # Define a log directory with session timestamp
 SESSION_TIMESTAMP=$(date +'%Y-%m-%d_%H-%M-%S')
-LOG_DIR="$HOME/internet_monitoring_logs/$SESSION_TIMESTAMP"
+LOG_DIR="/home/rob/internet_monitoring_logs/$SESSION_TIMESTAMP"
+echo "Log directory: $LOG_DIR"
 mkdir -p "$LOG_DIR"
 
 # Define a lock file to ensure only one instance runs at a time
@@ -73,9 +75,9 @@ trap "rm -f $LOCKFILE" EXIT
 run_internet_speed_test() {
     echo "Running internet speed test..."
     if command -v speedtest-cli > /dev/null; then
-        speedtest-cli --simple >> "$LOG_DIR/internet_speed_log.txt" 2>&1
+        timeout 60 speedtest-cli --simple >> "$LOG_DIR/internet_speed_log.txt" 2>&1
         if [ $? -ne 0 ]; then
-            echo "Error: speedtest-cli failed" >> "$LOG_DIR/error_log.txt"
+            echo "Error: speedtest-cli failed or timed out" >> "$LOG_DIR/error_log.txt"
         else
             echo "Internet speed test completed and logged."
         fi
@@ -87,9 +89,9 @@ run_internet_speed_test() {
 # Function to perform a latency check
 run_latency_check() {
     echo "Running latency check..."
-    ping -c 10 8.8.8.8 >> "$LOG_DIR/internet_latency_log.txt" 2>&1
+    timeout 60 ping -c 10 8.8.8.8 >> "$LOG_DIR/internet_latency_log.txt" 2>&1
     if [ $? -ne 0 ]; then
-        echo "Error: ping failed" >> "$LOG_DIR/error_log.txt"
+        echo "Error: ping failed or timed out" >> "$LOG_DIR/error_log.txt"
     else
         echo "Latency check completed and logged."
     fi
@@ -98,26 +100,46 @@ run_latency_check() {
 # Function to perform jitter measurement
 run_jitter_measurement() {
     echo "Running jitter measurement..."
-    ping -c 100 8.8.8.8 | awk -F'=' '/time=/ {print $NF}' | sed 's/ ms//' > "$LOG_DIR/jitter_log.txt"
+    timeout 60 ping -c 100 8.8.8.8 | awk -F'=' '/time=/ {print $NF}' | sed 's/ ms//' > "$LOG_DIR/jitter_log.txt"
     awk '{delta=$1-last; last=$1; if (NR>1) {print (delta<0 ? -delta : delta); sum+=delta}} END {print "Average jitter:", sum/NR, "ms"}' "$LOG_DIR/jitter_log.txt" >> "$LOG_DIR/internet_latency_log.txt"
+    if [ $? -ne 0 ]; then
+        echo "Error: jitter measurement failed or timed out" >> "$LOG_DIR/error_log.txt"
+    else
+        echo "Jitter measurement completed and logged."
+    fi
 }
 
 # Function to measure packet loss
 measure_packet_loss() {
     echo "Measuring packet loss..."
-    ping -c 100 8.8.8.8 | grep 'packet loss' >> "$LOG_DIR/internet_latency_log.txt"
+    timeout 60 ping -c 100 8.8.8.8 | grep 'packet loss' >> "$LOG_DIR/internet_latency_log.txt"
+    if [ $? -ne 0 ]; then
+        echo "Error: packet loss measurement failed or timed out" >> "$LOG_DIR/error_log.txt"
+    else
+        echo "Packet loss measurement completed and logged."
+    fi
 }
 
 # Function to run traceroute
 run_traceroute() {
     echo "Running traceroute..."
-    traceroute 8.8.8.8 > "$LOG_DIR/traceroute_log.txt"
+    timeout 60 traceroute 8.8.8.8 > "$LOG_DIR/traceroute_log.txt"
+    if [ $? -ne 0 ]; then
+        echo "Error: traceroute failed or timed out" >> "$LOG_DIR/error_log.txt"
+    else
+        echo "Traceroute completed and logged."
+    fi
 }
 
 # Function to measure DNS resolution time
 measure_dns_resolution_time() {
     echo "Measuring DNS resolution time..."
     dig google.com | grep 'Query time' >> "$LOG_DIR/dns_resolution_log.txt"
+    if [ $? -ne 0 ]; then
+        echo "Error: DNS resolution time measurement failed" >> "$LOG_DIR/error_log.txt"
+    else
+        echo "DNS resolution time measurement completed and logged."
+    fi
 }
 
 # Function to measure latency to multiple endpoints
@@ -125,7 +147,12 @@ measure_multi_endpoint_latency() {
     echo "Measuring latency to multiple endpoints..."
     for host in google.com cloudflare.com facebook.com; do
         echo "Pinging $host" >> "$LOG_DIR/multi_endpoint_latency_log.txt"
-        ping -c 10 $host | grep 'time=' >> "$LOG_DIR/multi_endpoint_latency_log.txt"
+        timeout 60 ping -c 10 $host | grep 'time=' >> "$LOG_DIR/multi_endpoint_latency_log.txt"
+        if [ $? -ne 0 ]; then
+            echo "Error: ping to $host failed or timed out" >> "$LOG_DIR/error_log.txt"
+        else
+            echo "Ping to $host completed and logged."
+        fi
     done
 }
 
@@ -168,7 +195,7 @@ create_master_log() {
 convert_master_log_to_pdf() {
     echo "Converting master log to PDF..."
     if command -v pandoc > /dev/null; then
-        pandoc "$LOG_DIR/master_log.txt" -o "$LOG_DIR/master_log.pdf"
+        pandoc "$LOG_DIR/master_log.txt" -o "$LOG_DIR/master_log.pdf" --pdf-engine=pdflatex
         if [ $? -ne 0 ]; then
             echo "Error: pandoc failed to create PDF" >> "$LOG_DIR/error_log.txt"
         else
@@ -191,6 +218,7 @@ create_master_log
 convert_master_log_to_pdf
 
 echo "Script completed at: $(date)"
+
 #+END_SRC
 
 * Setting Up the Cron Job
@@ -228,51 +256,100 @@ If the PC is turned off or asleep when the cron job is scheduled to run, the job
    #+END_SRC
 
 This setup will ensure that your internet monitoring script runs periodically and logs the necessary data, even if the PC is turned off during the scheduled time.
+* Internet Monitoring Suite Docker Setup
 
-* Docker Setup
+This document outlines the setup and usage of the Internet Monitoring Suite Docker container using Podman.
 
-To set up the internet monitoring script using Docker with Podman, follow these steps:
+** Dockerfile
 
-1. Create a `Dockerfile` in the same directory as your script (`/home/rob/Dotfiles/monitoring-suite/`).
-
-#+BEGIN_SRC Dockerfile
-# Use a base image with Fedora
+#+BEGIN_SRC dockerfile
+# Use Fedora as the base image
 FROM fedora:latest
 
-# Install necessary packages
+# Update and install necessary packages
 RUN dnf -y update && \
-    dnf -y install speedtest-cli pandoc cronie
+    dnf -y install speedtest-cli pandoc cronie iputils bind-utils texlive texlive-latex traceroute
 
-# Copy the script into the container
+# Create a directory for logs and PDF files
+RUN mkdir -p /home/rob/internet_monitoring_logs
+
+# Copy the monitoring script into the container
 COPY internet_monitoring.sh /usr/local/bin/internet_monitoring.sh
 
+# Set the working directory
+WORKDIR /usr/local/bin
+
 # Make the script executable
-RUN chmod +x /usr/local/bin/internet_monitoring.sh
+RUN chmod +x internet_monitoring.sh
 
-# Set up a cron job
-RUN echo "0 */4 * * * /usr/local/bin/internet_monitoring.sh >> /var/log/internet_monitoring.log 2>&1" > /etc/cron.d/internet_monitoring && \
-    crontab /etc/cron.d/internet_monitoring
+# Create a user and switch to it
+RUN useradd -ms /bin/bash rob
+USER rob
 
-# Set the entrypoint to cron
-ENTRYPOINT ["crond", "-n"]
+# Execute the script when the container starts
+CMD ["bash", "internet_monitoring.sh"]
 #+END_SRC
 
-2. Build the Docker image with Podman:
+** Running the Container with Podman
 
-   Navigate to the directory containing your `Dockerfile` and run the following command to build your Docker image:
+To build the Docker image and run the container using Podman:
 
-   #+BEGIN_SRC sh
-   cd /home/rob/Dotfiles/monitoring-suite
+1. Save the Dockerfile to a directory.
+2. Open a terminal and navigate to the directory containing the Dockerfile.
+3. Build the Docker image:
+   #+BEGIN_SRC shell
    podman build -t internet-monitoring-suite .
    #+END_SRC
 
-3. Run the Docker container with Podman:
-
-   After building the image, you can run the container using the following command:
-
-   #+BEGIN_SRC sh
-   podman run -d --name internet-monitoring-suite internet-monitoring-suite
+4. Ensure proper permissions for the host directory:
+   #+BEGIN_SRC shell
+   sudo chown -R $(id -u):$(id -g) ~/internet_monitoring_logs
+   sudo chmod -R 777 ~/internet_monitoring_logs
    #+END_SRC
+
+5. Run the container with volume mounting and user mapping to store logs and PDFs on the host machine:
+   #+BEGIN_SRC shell
+   podman run -d --name internet-monitoring-suite \
+     --cap-add=NET_RAW \
+     --cap-add=NET_ADMIN \
+     -v ~/internet_monitoring_logs:/home/rob/internet_monitoring_logs:Z \
+     --user 1000:1000 \
+     internet-monitoring-suite
+   #+END_SRC
+
+   Replace `~/internet_monitoring_logs` with the path on your host machine where you want to store logs and PDFs.
+
+** Setting Up a Cron Job to Run the Container Periodically
+
+To ensure the monitoring script runs at regular intervals, set up a cron job to start the container every 4 hours:
+
+1. Edit the crontab:
+   #+BEGIN_SRC shell
+   crontab -e
+   #+END_SRC
+
+2. Add the following entry to run the container every 4 hours:
+   #+BEGIN_EXAMPLE
+   0 */4 * * * podman run --rm --name internet-monitoring-suite --cap-add=NET_RAW --cap-add=NET_ADMIN -v ~/internet_monitoring_logs:/home/rob/internet_monitoring_logs:Z --user 1000:1000 internet-monitoring-suite
+   #+END_EXAMPLE
+
+   This specifies that the command will run every 4 hours. Replace `~/internet_monitoring_logs` with the path on your host machine where you want to store logs and PDFs.
+
+3. Verify the cron job has been added correctly:
+   #+BEGIN_SRC shell
+   crontab -l
+   #+END_SRC
+
+   This should display the cron job you just added.
+
+** Accessing Logs and PDF Files
+
+- **Logs Directory**: The logs and PDF files are stored in `/home/rob/internet_monitoring_logs` within the container.
+- **Mounted Directory**: The files are also available in the directory you specified on your host machine.
+
+** Conclusion
+
+This setup allows you to automate internet monitoring tasks using Podman containers, ensuring consistent execution and easy access to generated logs and reports. Adjust paths and configurations as needed based on your specific environment and requirements.
 
 * Advantages of Using Podman Rootless Containers vs. Docker
 

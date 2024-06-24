@@ -1,19 +1,25 @@
-# Use a base image with Fedora
+# Use Fedora as the base image
 FROM fedora:latest
 
-# Install necessary packages
+# Update and install necessary packages
 RUN dnf -y update && \
-    dnf -y install speedtest-cli pandoc cronie
+    dnf -y install speedtest-cli pandoc cronie iputils bind-utils texlive texlive-latex traceroute
 
-# Copy the script into the container
+# Create a directory for logs and PDF files
+RUN mkdir -p /home/rob/internet_monitoring_logs
+
+# Copy the monitoring script into the container
 COPY internet_monitoring.sh /usr/local/bin/internet_monitoring.sh
 
+# Set the working directory
+WORKDIR /usr/local/bin
+
 # Make the script executable
-RUN chmod +x /usr/local/bin/internet_monitoring.sh
+RUN chmod +x internet_monitoring.sh
 
-# Set up a cron job
-RUN echo "0 */4 * * * /usr/local/bin/internet_monitoring.sh >> /var/log/internet_monitoring.log 2>&1" > /etc/cron.d/internet_monitoring && \
-    crontab /etc/cron.d/internet_monitoring
+# Create a user and switch to it
+RUN useradd -ms /bin/bash rob
+USER rob
 
-# Set the entrypoint to cron
-ENTRYPOINT ["crond", "-n"]
+# Execute the script when the container starts
+CMD ["bash", "internet_monitoring.sh"]

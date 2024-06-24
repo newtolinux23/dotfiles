@@ -1,116 +1,100 @@
 #!/bin/bash
 
-# Internet Monitoring Suite
-# This script continuously monitors your internet connection, performs periodic tests, and logs the results.
-# It includes internet speed tests, latency checks, connection dropouts monitoring, and service outages monitoring.
-# The results are consolidated into a master log and converted to a PDF for easy sharing with your ISP.
+# Toggle logging
+LOGGING=true
 
-# Define PID file and log directory
-PIDFILE="/tmp/internet_monitoring.pid"
-BASE_LOG_DIR="$HOME/internet_monitoring_logs"
+if [ "$LOGGING" = true ]; then
+    exec > >(tee -a /tmp/internet_monitoring.log) 2>&1
+fi
 
-# Function to start monitoring
-start_monitoring() {
-    # Ensure the base log directory exists
-    mkdir -p $BASE_LOG_DIR
+echo "Script started at: $(date)"
+echo "Current user: $(whoami)"
 
-    # Create a new directory for this test run
-    LOG_DIR="$BASE_LOG_DIR/$(date +"%Y-%m-%d_%H-%M-%S")"
-    mkdir -p $LOG_DIR
+# Define a log directory with session timestamp
+SESSION_TIMESTAMP=$(date +'%Y-%m-%d_%H-%M-%S')
+LOG_DIR="$HOME/internet_monitoring_logs/$SESSION_TIMESTAMP"
+mkdir -p "$LOG_DIR"
 
-    # Check if another instance is running, if so, stop it
-    if [ -e $PIDFILE ] && kill -0 $(cat $PIDFILE); then
-        echo "Stopping existing instance..."
-        kill -9 $(cat $PIDFILE)
-        rm -f $PIDFILE
-    fi
+# Define a lock file to ensure only one instance runs at a time
+LOCKFILE="/tmp/internet_monitoring.lock"
 
-    # Write the current PID to the PID file
-    echo $$ > $PIDFILE
+# Check if another instance is running and exit if true
+if [ -f "$LOCKFILE" ] && kill -0 "$(cat "$LOCKFILE")"; then
+    echo "Another instance is already running. Exiting."
+    exit 1
+fi
 
-    # Trap to ensure the PID file is removed on script exit
-    trap "rm -f $PIDFILE" EXIT
+# Write the current PID to the lock file
+echo $$ > "$LOCKFILE"
 
-    # Create empty log files for dropouts and outages
-    touch "$LOG_DIR/connection_dropouts_log.txt"
-    touch "$LOG_DIR/service_outages_log.txt"
+# Trap to ensure the lock file is removed on script exit
+trap "rm -f $LOCKFILE" EXIT
 
-    echo "Starting connection dropouts monitoring..."
-    run_connection_dropouts &
-
-    echo "Starting service outages monitoring..."
-    run_service_outages &
-
-    echo "Starting monitoring suite..."
-    # Loop to continuously perform tests every 30 minutes
-    while true; do
-        run_internet_speed_test
-        run_latency_check
-        create_master_log
-        convert_to_pdf
-        sleep 1800  # Wait for 30 minutes before the next run
-    done
-}
-
-# Function to run internet speed test with timeout
+# Function to perform an internet speed test
 run_internet_speed_test() {
-    LOG_FILE="$LOG_DIR/internet_speed_log.txt"
     echo "Running internet speed test..."
-    timeout 30s speedtest-cli --simple >> $LOG_FILE 2>&1 || echo "Speedtest failed or timed out" >> $LOG_FILE
-    echo "Internet speed test completed and logged."
+    if command -v speedtest-cli > /dev/null; then
+        speedtest-cli --simple >> "$LOG_DIR/internet_speed_log.txt" 2>&1
+        if [ $? -ne 0 ]; then
+            echo "Error: speedtest-cli failed" >> "$LOG_DIR/error_log.txt"
+        else
+            echo "Internet speed test completed and logged."
+        fi
+    else
+        echo "Error: speedtest-cli is not installed" >> "$LOG_DIR/error_log.txt"
+    fi
 }
 
-# Function to run latency check with timeout
+# Function to perform a latency check
 run_latency_check() {
-    LOG_FILE="$LOG_DIR/internet_latency_log.txt"
-    TARGET="8.8.8.8"
     echo "Running latency check..."
-    timeout 30s ping -c 10 $TARGET >> $LOG_FILE 2>&1 || echo "Ping failed or timed out" >> $LOG_FILE
-    echo "Latency check completed and logged."
+    ping -c 10 8.8.8.8 >> "$LOG_DIR/internet_latency_log.txt" 2>&1
+    if [ $? -ne 0 ]; then
+        echo "Error: ping failed" >> "$LOG_DIR/error_log.txt"
+    else
+        echo "Latency check completed and logged."
+    fi
 }
 
-# Function to monitor connection dropouts
-run_connection_dropouts() {
-    LOG_FILE="$LOG_DIR/connection_dropouts_log.txt"
-    TARGET="8.8.8.8"
-    while true; do
-        timeout 5s ping -c 1 $TARGET > /dev/null 2>&1
-        if [ $? -ne 0 ]; then
-            echo "Connection dropout detected at $(date +"%Y-%m-%d %H:%M:%S")" >> $LOG_FILE
-        fi
-        sleep 60  # Wait for 1 minute before the next check
-    done
+# Function to perform jitter measurement
+run_jitter_measurement() {
+    echo "Running jitter measurement..."
+    ping -c 100 8.8.8.8 | awk -F'=' '/time=/ {print $NF}' | sed 's/ ms//' > "$LOG_DIR/jitter_log.txt"
+    awk '{delta=$1-last; last=$1; if (NR>1) {print (delta<0 ? -delta : delta); sum+=delta}} END {print "Average jitter:", sum/NR, "ms"}' "$LOG_DIR/jitter_log.txt" >> "$LOG_DIR/internet_latency_log.txt"
 }
 
-# Function to monitor service outages
-run_service_outages() {
-    LOG_FILE="$LOG_DIR/service_outages_log.txt"
-    TARGET="8.8.8.8"
-    while true; do
-        timeout 5s ping -c 1 $TARGET > /dev/null 2>&1
-        if [ $? -ne 0 ]; then
-            START=$(date +"%Y-%m-%d %H:%M:%S")
-            echo "Service outage started at $START" >> $LOG_FILE
-            while [ $? -ne 0 ]; do
-                timeout 5s ping -c 1 $TARGET > /dev/null 2>&1
-                sleep 10
-            done
-            END=$(date +"%Y-%m-%d %H:%M:%S")
-            echo "Service outage ended at $END" >> $LOG_FILE
-            DURATION=$(( $(date -d "$END" +%s) - $(date -d "$START" +%s) ))
-            echo "Outage duration: $DURATION seconds" >> $LOG_FILE
-            echo "----------------------------------" >> $LOG_FILE
-        fi
-        sleep 60  # Wait for 1 minute before the next check
+# Function to measure packet loss
+measure_packet_loss() {
+    echo "Measuring packet loss..."
+    ping -c 100 8.8.8.8 | grep 'packet loss' >> "$LOG_DIR/internet_latency_log.txt"
+}
+
+# Function to run traceroute
+run_traceroute() {
+    echo "Running traceroute..."
+    traceroute 8.8.8.8 > "$LOG_DIR/traceroute_log.txt"
+}
+
+# Function to measure DNS resolution time
+measure_dns_resolution_time() {
+    echo "Measuring DNS resolution time..."
+    dig google.com | grep 'Query time' >> "$LOG_DIR/dns_resolution_log.txt"
+}
+
+# Function to measure latency to multiple endpoints
+measure_multi_endpoint_latency() {
+    echo "Measuring latency to multiple endpoints..."
+    for host in google.com cloudflare.com facebook.com; do
+        echo "Pinging $host" >> "$LOG_DIR/multi_endpoint_latency_log.txt"
+        ping -c 10 $host | grep 'time=' >> "$LOG_DIR/multi_endpoint_latency_log.txt"
     done
 }
 
 # Function to create a master log
 create_master_log() {
-    MASTER_LOG="$LOG_DIR/master_log.txt"
     echo "Creating master log..."
     {
-        echo "Internet Monitoring Log - $(date)"
+        echo "Internet Monitoring Log - $SESSION_TIMESTAMP"
         echo "----------------------------------"
         echo "Internet Speed Test Log"
         cat "$LOG_DIR/internet_speed_log.txt"
@@ -118,28 +102,53 @@ create_master_log() {
         echo "Latency Test Log"
         cat "$LOG_DIR/internet_latency_log.txt"
         echo "----------------------------------"
-        echo "Connection Dropouts Log"
-        cat "$LOG_DIR/connection_dropouts_log.txt"
+        echo "Jitter Measurement"
+        cat "$LOG_DIR/jitter_log.txt"
         echo "----------------------------------"
-        echo "Service Outages Log"
-        cat "$LOG_DIR/service_outages_log.txt"
+        echo "Packet Loss Measurement"
+        cat "$LOG_DIR/internet_latency_log.txt" | grep 'packet loss'
         echo "----------------------------------"
-    } > $MASTER_LOG
-    echo "Master log created at $MASTER_LOG"
+        echo "Traceroute Log"
+        cat "$LOG_DIR/traceroute_log.txt"
+        echo "----------------------------------"
+        echo "DNS Resolution Time"
+        cat "$LOG_DIR/dns_resolution_log.txt"
+        echo "----------------------------------"
+        echo "Multi-Endpoint Latency"
+        cat "$LOG_DIR/multi_endpoint_latency_log.txt"
+        echo "----------------------------------"
+        if [ -f "$LOG_DIR/error_log.txt" ]; then
+            echo "Errors:"
+            cat "$LOG_DIR/error_log.txt"
+        fi
+    } > "$LOG_DIR/master_log.txt"
+    echo "Master log created at $LOG_DIR/master_log.txt"
 }
 
 # Function to convert master log to PDF
-convert_to_pdf() {
-    MASTER_LOG="$LOG_DIR/master_log.txt"
-    PDF_FILE="$LOG_DIR/master_log.pdf"
+convert_master_log_to_pdf() {
     echo "Converting master log to PDF..."
-    if command -v pandoc &> /dev/null; then
-        pandoc "$MASTER_LOG" -o "$PDF_FILE"
-        echo "PDF created at $PDF_FILE"
+    if command -v pandoc > /dev/null; then
+        pandoc "$LOG_DIR/master_log.txt" -o "$LOG_DIR/master_log.pdf"
+        if [ $? -ne 0 ]; then
+            echo "Error: pandoc failed to create PDF" >> "$LOG_DIR/error_log.txt"
+        else
+            echo "PDF created at $LOG_DIR/master_log.pdf"
+        fi
     else
-        echo "Pandoc is not installed. Install pandoc to convert the log to PDF."
+        echo "Pandoc is not installed. Skipping PDF conversion."
     fi
 }
 
-# Start monitoring suite
-start_monitoring
+# Run the monitoring tasks
+run_internet_speed_test
+run_latency_check
+run_jitter_measurement
+measure_packet_loss
+run_traceroute
+measure_dns_resolution_time
+measure_multi_endpoint_latency
+create_master_log
+convert_master_log_to_pdf
+
+echo "Script completed at: $(date)"

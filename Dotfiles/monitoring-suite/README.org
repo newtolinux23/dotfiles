@@ -256,7 +256,8 @@ If the PC is turned off or asleep when the cron job is scheduled to run, the job
    #+END_SRC
 
 This setup will ensure that your internet monitoring script runs periodically and logs the necessary data, even if the PC is turned off during the scheduled time.
-* Internet Monitoring Suite Docker Setup
+
+* Docker Setup
 
 This document outlines the setup and usage of the Internet Monitoring Suite Docker container using Podman.
 

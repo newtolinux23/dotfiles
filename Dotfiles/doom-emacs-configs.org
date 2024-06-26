@@ -187,7 +187,7 @@ This is my first attempt at setting up a personalized Emacs configuration using 
        ;;(haskell +lsp)    ; a language that's lazier than I am
        ;;hy                ; readability of scheme w/ speed of python
        ;;idris             ; a language you can depend on
-       ;;json              ; At least it ain't XML
+       json              ; At least it ain't XML
        ;;(java +lsp)       ; the poster child for carpal tunnel syndrome
        ;;javascript        ; all(hope(abandon(ye(who(enter(here))))))
        ;;julia             ; a better, faster MATLAB
@@ -204,7 +204,7 @@ This is my first attempt at setting up a personalized Emacs configuration using 
        ;;php               ; perl's insecure younger brother
        ;;plantuml          ; diagrams for confusing people more
        ;;purescript        ; javascript, but functional
-       ;;python            ; beautiful is better than ugly
+       python            ; beautiful is better than ugly
        ;;qt                ; the 'cutest' gui framework ever
        ;;racket            ; a DSL for DSLs
        ;;raku              ; the artist formerly known as perl6
@@ -328,36 +328,43 @@ This is my first attempt at setting up a personalized Emacs configuration using 
 
 *** Set Author Information
 #+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
+
+;; User Information
 (setq user-full-name "Rob Alicea"
       user-mail-address "train@idoneitatemlife.com")
 
+;; Theme and Appearance
 (setq doom-theme 'doom-molokai)
-#+end_src
+(setq display-line-numbers-type t)
+(setq doom-font (font-spec :family "Fira Code" :size 16 :weight 'regular))
+(setq doom-variable-pitch-font (font-spec :family "Arial" :size 16))
+(setq doom-big-font (font-spec :family "Fira Code" :size 20))
+(setq doom-modeline-icon t)
+(setq doom-modeline-height 25)
+(global-display-line-numbers-mode t)
+(tool-bar-mode -1)
+(scroll-bar-mode -1)
+(setq inhibit-startup-screen t)
+(set-frame-parameter (selected-frame) 'alpha '(98 98)) ;; Adjust transparency
+(add-to-list 'default-frame-alist '(alpha 98 98))
+(add-to-list 'initial-frame-alist '(fullscreen . maximized))
+(add-to-list 'default-frame-alist '(fullscreen . maximized))
 
-*** Load and initialize pdf-tools
-#+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
+;; Org Directory
+(setq org-directory "~/org/")
+
+;; PDF Tools Configuration
 (use-package pdf-tools
   :defer t
   :config
   (pdf-tools-install)
-  ;; Disable any color modifications
-  (setq pdf-view-midnight-colors '("#ffffff" . "#000000")) ;; Set to default white text on black background
+  (setq pdf-view-midnight-colors '("#ffffff" . "#000000"))
   (add-hook 'pdf-view-mode-hook (lambda () (pdf-view-midnight-minor-mode -1)))
-  ;; Optional: Fit the PDF to the page size by default
   (setq-default pdf-view-display-size 'fit-page)
-  ;; Optional: Disable line numbers in pdf-view-mode
-  (add-hook 'pdf-view-mode-hook (lambda () (display-line-numbers-mode -1))))
-  (setq pdf-view-resize-factor 1.1)
-#+end_src
+  (add-hook 'pdf-view-mode-hook (lambda () (display-line-numbers-mode -1)))
+  (setq pdf-view-resize-factor 1.1))
 
-*** Start Emacs in fullscreen mode
-#+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
-(add-to-list 'initial-frame-alist '(fullscreen . maximized))
-(add-to-list 'default-frame-alist '(fullscreen . maximized))
-#+end_src
-
-*** Set author information for AUCTeX
-#+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
+;; LaTeX Configuration
 (with-eval-after-load 'tex
   (setq LaTeX-command "latex -shell-escape"
         TeX-PDF-mode t
@@ -369,134 +376,139 @@ This is my first attempt at setting up a personalized Emacs configuration using 
               (add-to-list 'TeX-command-list
                            '("XeLaTeX" "xelatex -interaction=nonstopmode %s"
                              TeX-run-command t t :help "Run XeLaTeX")))))
-#+end_src
 
-*** Enable Org mode and LaTeX packages
-#+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
+;; Org Mode Configuration
 (use-package! org
   :defer t
   :config
-  ;; Additional Org mode configurations
-  )
+  (setq org-startup-indented t
+        org-hide-leading-stars t
+        org-directory "~/org/")
+  (add-hook 'org-mode-hook #'visual-line-mode)
+  (add-hook 'org-mode-hook #'auto-fill-mode)
+  (setq-default fill-column 80)
+  (global-visual-line-mode 1)
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((emacs-lisp . t)
+     (python . t)
+     (shell . t)))
+  (use-package! org-tempo
+    :after org)
+  (add-hook 'org-mode-hook
+            (lambda ()
+              (add-hook 'after-save-hook 'org-babel-tangle
+                        'append 'local))))
 
+;; Additional Org LaTeX Export Configuration
 (use-package! ox-latex
   :after org
   :config
-  ;; Use minted for syntax highlighting
   (setq org-latex-listings 'minted)
   (setq org-latex-packages-alist
         '(("" "minted" t)
           ("" "xcolor" t)
           ("" "hyperref" t)
           ("" "tocloft" t)))
-  ;; Ensure LaTeX knows where to find pygmentize
   (setq org-latex-minted-options
         '(("breaklines" "true")
           ("bgcolor" "bg")
           ("fontsize" "\\footnotesize")))
-  ;; Configure LaTeX to use shell escape
   (setq org-latex-pdf-process
         '("pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"
-          "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"))
-  )
-#+end_src
+          "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f")))
 
-*** Setting the default font
-#+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
-(setq doom-font (font-spec :family "Fira Code" :size 16 :weight 'regular))
-(setq doom-variable-pitch-font (font-spec :family "Arial" :size 16))
-(setq doom-big-font (font-spec :family "Fira Code" :size 20))
-#+end_src
+;; Python Development Environment
+(after! python
+  (setq python-shell-interpreter "python3"))
 
-*** Enabling icons and setting the height
-#+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
-(setq doom-modeline-icon t)
-(setq doom-modeline-height 25)
-#+end_src
+;; Enable lsp-mode for Python
+(use-package! lsp-mode
+  :commands (lsp lsp-deferred)
+  :hook ((python-mode . lsp-deferred))
+  :config
+  (setq lsp-pylsp-plugins-flake8-enabled t)
+  (setq lsp-pylsp-plugins-pycodestyle-enabled nil)
+  (setq lsp-pylsp-plugins-mccabe-enabled nil)
+  (setq lsp-pylsp-plugins-pylint-enabled t)
+  (setq lsp-pylsp-plugins-autopep8-enabled t))
 
-*** Enable line numbers
-#+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
-(setq display-line-numbers-type 'relative)
-(global-display-line-numbers-mode t)
-#+end_src
+;; Enable company mode for auto-completion
+(use-package! company
+  :after lsp-mode
+  :hook (lsp-mode . company-mode)
+  :config
+  (setq company-idle-delay 0)
+  (setq company-minimum-prefix-length 1)
+  (setq company-selection-wrap-around t))
 
-*** Disable toolbar and scrollbar
-#+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
-(tool-bar-mode -1)
-(scroll-bar-mode -1)
-#+end_src
+;; Enable flycheck for real-time syntax checking
+(use-package! flycheck
+  :after lsp-mode
+  :hook (lsp-mode . flycheck-mode)
+  :config
+  (setq flycheck-python-pyright-executable "pyright"))
 
-*** Disable the startup screen
-#+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
-(setq inhibit-startup-screen t)
-#+end_src
+;; Enable blacken for code formatting
+(use-package! blacken
+  :hook (python-mode . blacken-mode)
+  :config
+  (setq blacken-line-length 88))
 
-*** Set transparency to be less transparent
-#+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
-(set-frame-parameter (selected-frame) 'alpha '(98 98)) ;; You can adjust the values to your preference
-(add-to-list 'default-frame-alist '(alpha 98 98))
-#+end_src
+;; Enable isort for import sorting
+(use-package! py-isort
+  :hook (before-save . py-isort-before-save))
 
-*** Disable line numbers in pdf-view-mode
-#+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
-(add-hook 'pdf-view-mode-hook (lambda () (display-line-numbers-mode -1)))
-#+end_src
+;; Enable pyvenv for virtual environment support
+(use-package! pyvenv
+  :config
+  (pyvenv-mode 1))
 
-*** Enable Flyspell for text and programming modes
-#+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
+;; Set up keybindings
+(map! :leader
+      :prefix ("c" . "code")
+      :desc "Format buffer" "f" #'lsp-format-buffer
+      :desc "Organize imports" "i" #'lsp-organize-imports
+      :desc "Find references" "r" #'lsp-find-references)
+
+;; Flyspell Configuration
 (add-hook 'text-mode-hook 'flyspell-mode)
 (add-hook 'prog-mode-hook 'flyspell-prog-mode)
-
-;; Optional: Enable Flyspell for specific major modes
 (add-hook 'markdown-mode-hook 'flyspell-mode)
 (add-hook 'org-mode-hook 'flyspell-mode)
 
 ;; Key bindings for Flyspell
 (map! :leader
-      :desc "Correct word" "c" #'flyspell-correct-word-before-point)
+      :desc "Correct word" "sc" #'flyspell-correct-word-before-point)
 
-;; Use flyspell-correct with Ivy or Helm
 (after! flyspell
-  (require 'flyspell-correct-ivy)) ;; or 'flyspell-correct-helm
+  (require 'flyspell-correct-ivy))
 
-;; Key binding for Flyspell Correct
 (map! :leader
-      :desc "Flyspell correct" "s" #'flyspell-correct-wrapper)
-#+end_src
+      :desc "Flyspell correct" "ss" #'flyspell-correct-wrapper)
 
-*** Set initial text scale
-#+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
+;; Miscellaneous Configuration
 (defun my/set-default-text-scale ()
   "Set the default text scale."
-  (text-scale-set 3))  ; Change the value to your desired zoom level
+  (text-scale-set 3))
 
 (add-hook 'after-init-hook 'my/set-default-text-scale)
-#+end_src
 
-*** Keybindings for adjusting text scale
-#+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
 (map! :leader
-      :desc "Increase text scale" "z i" #'text-scale-increase
-      :desc "Decrease text scale" "z o" #'text-scale-decrease
-      :desc "Reset text scale" "z r" (lambda () (interactive) (text-scale-set 0)))
+      :desc "Increase text scale" "zi" #'text-scale-increase
+      :desc "Decrease text scale" "zo" #'text-scale-decrease
+      :desc "Reset text scale" "zr" (lambda () (interactive) (text-scale-set 0)))
 
 (add-hook 'doom-init-ui-hook #'doom-disable-line-numbers-h)
-#+end_src
 
-*** Indentation Settings
-#+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
 (setq-default
  standard-indent 4
  tab-width 4
  evil-shift-width 4
  indent-tabs-mode t)
-#+end_src
 
-*** Garbage collection threshold to speed up initialization
-#+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
 (setq gc-cons-threshold (* 100 1024 1024))
 
-;; Decrease the garbage collection threshold after initialization to reclaim memory more frequently
 (add-hook 'emacs-startup-hook
           (lambda ()
             (setq gc-cons-threshold (* 2 1024 1024)
@@ -511,66 +523,14 @@ This is my first attempt at setting up a personalized Emacs configuration using 
   :defer t
   :config
   (ivy-mode 1))
-#+end_src
 
-*** Set up company for autocompletion
-#+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
 (use-package! company
   :defer t
   :config
   (global-company-mode 1))
-#+end_src
+  #+end_src
 
-*** Set up lsp-mode for language server support
-#+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
-(use-package! lsp-mode
-  :defer t
-  :commands lsp
-  :config
-  (setq lsp-headerline-breadcrumb-enable nil
-        lsp-enable-symbol-highlighting nil))
-#+end_src
-
-*** Org mode optimization
-#+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
-(use-package! org
-  :defer t
-  :config
-  (setq org-startup-indented t
-        org-hide-leading-stars t))
-#+end_src
-
-*** Disable line numbers for the Doom Emacs startup buffer
-#+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
-(add-hook 'doom-init-ui-hook (lambda () (display-line-numbers-mode -1)))
-
-(add-hook 'org-mode-hook #'visual-line-mode)
-
-(setq-default fill-column 80) ;; Set the desired column width
-(add-hook 'org-mode-hook #'auto-fill-mode)
-
-(global-visual-line-mode 1)
-#+end_src
-
-*** Enable Org Babel languages
-#+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
-(after! org
-  (org-babel-do-load-languages
-   'org-babel-load-languages
-   '((emacs-lisp . t)
-     (python . t)
-     (shell . t) ;; Ensure shell support is enabled
-     ;; Add other languages as needed
-     )))
-(use-package! org-tempo
-  :after org)
-(add-hook 'org-mode-hook
-          (lambda ()
-            (add-hook 'after-save-hook 'org-babel-tangle
-                      'append 'local)))
-#+END_SRC
-
-** Packages File
+*** Packages File
 #+begin_src emacs-lisp :tangle ~/.doom.d/packages.el
 
 ;; -*- no-byte-compile: t; -*-

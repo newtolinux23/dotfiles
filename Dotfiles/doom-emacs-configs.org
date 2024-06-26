@@ -16,7 +16,7 @@ This is my first attempt at setting up a personalized Emacs configuration using 
 - [[#introduction][Introduction]]
 - [[#init-file][Init File]]
 - [[#configuration-file][Configuration File]]
-  -[[#configuration-packages][Configuration Packages]]
+  - [[#configuration-packages][Configuration Packages]]
 - [[#packages-file][Packages File]]
   - [[#installed-Packages][Installed Packages]]
 

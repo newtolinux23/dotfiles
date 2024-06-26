@@ -15,7 +15,8 @@ This is my first attempt at setting up a personalized Emacs configuration using 
 * Table of Content
 - [[#introduction][Introduction]]
 - [[#init-file][Init File]]
-- [[#config-file][Configuration File Preamble]]
+- [[#configuration-file][Configuration File]]
+  -[[#configuration-packages][Configuration Packages]]
 - [[#packages-file][Packages File]]
   - [[#installed-Packages][Installed Packages]]
 
@@ -221,7 +222,7 @@ This is my first attempt at setting up a personalized Emacs configuration using 
 
 #+end_src
 
-* Configuration Preamble
+* Configuration File
 #+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
 
 ;;; $DOOMDIR/config.el -*- lexical-binding: t; -*-
@@ -303,7 +304,7 @@ This is my first attempt at setting up a personalized Emacs configuration using 
 
 #+end_src
 
-* Confuguration File
+* Confuguration Packages
 #+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
 
 ;; User Information

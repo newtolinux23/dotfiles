@@ -304,7 +304,7 @@ This is my first attempt at setting up a personalized Emacs configuration using 
 
 #+end_src
 
-* Confuguration Packages
+* Configuration Packages
 #+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
 
 ;; User Information

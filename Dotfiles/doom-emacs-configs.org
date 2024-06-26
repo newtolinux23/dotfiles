@@ -41,7 +41,7 @@ This is my first attempt at setting up a personalized Emacs configuration using 
 - [[#packages-file][Packages File]]
   - [[#installed-Packages][Installed Packages]]
 
-** Init File
+* Init File
 #+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/init.el
 
 ;; init.el -*- lexical-binding: t; -*-
@@ -243,7 +243,7 @@ This is my first attempt at setting up a personalized Emacs configuration using 
 
 #+end_src
 
-** Config File
+* Configuration Preamble
 #+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
 
 ;;; $DOOMDIR/config.el -*- lexical-binding: t; -*-
@@ -325,8 +325,7 @@ This is my first attempt at setting up a personalized Emacs configuration using 
 
 #+end_src
 
-
-*** Set Author Information
+* Confuguration File
 #+BEGIN_SRC emacs-lisp :tangle ~/.doom.d/config.el
 
 ;; User Information
@@ -530,7 +529,7 @@ This is my first attempt at setting up a personalized Emacs configuration using 
   (global-company-mode 1))
   #+end_src
 
-*** Packages File
+* Packages File
 #+begin_src emacs-lisp :tangle ~/.doom.d/packages.el
 
 ;; -*- no-byte-compile: t; -*-
@@ -586,7 +585,7 @@ This is my first attempt at setting up a personalized Emacs configuration using 
 
 #+end_src
 
-*** Installed Packages
+* Installed Packages
 #+begin_src emacs-lisp :tangle ~/.doom.d/packages.el
 (package! doom-themes)
 (package! dracula-theme)

@@ -1,0 +1,116 @@
+#+title: Shell-GPT on Podman
+#+TITLE: ShellGPT Project
+#+AUTHOR: Your Name
+#+DATE: 2024-06-27
+#+OPTIONS: toc:2 num:nil
+
+* Table of Contents
+- [[#introduction][Introduction]]
+- [[#setup-and-configuration][Setup and Configuration]]
+  - [[#dockerfile][Dockerfile]]
+  - [[#building-the-image][Building the Image]]
+  - [[#running-the-container][Running the Container]]
+- [[#issues-and-solutions][Issues and Solutions]]
+  - [[#environment-variable-management][Environment Variable Management]]
+  - [[#using-podman-secrets][Using Podman Secrets]]
+  - [[#script-execution-errors][Script Execution Errors]]
+- [[#why-podman][Why Podman]]
+  - [[#advantages-of-podman][Advantages of Podman]]
+- [[#benefits-of-ai-from-the-terminal][Benefits of AI from the Terminal]]
+  - [[#productivity][Productivity]]
+  - [[#automation][Automation]]
+  - [[#integration][Integration]]
+- [[#conclusion][Conclusion]]
+
+* Introduction
+This project sets up a terminal-based interface to interact with OpenAI's GPT-3 model using Podman. The aim is to create a flexible and secure environment for leveraging AI capabilities directly from the command line.
+
+* Setup and Configuration
+This section describes how to set up and configure the project.
+
+** Dockerfile
+The Dockerfile is crucial for setting up the environment. Here is the Dockerfile used in this project:
+
+#+begin_src dockerfile
+# Use a lightweight Python image
+FROM python:3.9-slim
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+
+# Set the working directory
+WORKDIR /app
+
+# Copy the requirements file
+COPY requirements.txt .
+
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the application code
+COPY . .
+
+# Install the sgpt package using setup.py
+RUN pip install -e .
+
+# Ensure the target file is executable
+RUN chmod +x /app/sgpt/app.py
+
+# Create a symbolic link for the sgpt command
+RUN ln -sf /app/sgpt/app.py /usr/local/bin/sgpt
+
+# Explicitly set the environment variable by reading the secret file
+RUN echo 'export OPENAI_API_KEY=$(cat /run/secrets/openai_api_key)' >> /etc/profile.d/openai.sh
+
+# Default command to run the script
+CMD ["/bin/bash", "-c", "source /etc/profile.d/openai.sh && sgpt"]
+#+end_src
+
+** Building the Image
+To build the Docker image, use the following command:
+
+#+begin_src sh
+podman build -t shellgpt .
+#+end_src
+
+** Running the Container
+Run the container with the secret for the OpenAI API key:
+
+#+begin_src sh
+podman run --rm -it --secret openai_api_key shellgpt sgpt "Tell me about the history of Linux."
+#+end_src
+
+* Issues and Solutions
+During the development of this project, several issues were encountered and resolved.
+
+** Environment Variable Management
+Ensuring that the OpenAI API key is securely passed to the container was critical. We used Podman secrets to manage this securely.
+
+** Using Podman Secrets
+The API key was stored as a Podman secret and accessed within the container using a script that sources the key into the environment.
+
+** Script Execution Errors
+Various syntax errors and permission issues were encountered during the script execution, which were resolved by ensuring proper shebang lines, correct permissions, and valid Python syntax.
+
+* Why Podman
+Podman was chosen for this project for several reasons.
+
+** Advantages of Podman
+- **Rootless Containers**: Podman allows running containers as a non-root user, enhancing security.
+- **Docker-Compatible CLI**: Podman provides a Docker-compatible command line interface, making it easy to switch from Docker.
+- **No Daemon**: Unlike Docker, Podman does not require a daemon, reducing the system overhead and potential points of failure.
+
+* Benefits of AI from the Terminal
+Integrating AI capabilities directly into the terminal offers several benefits.
+
+** Productivity
+AI can assist with complex queries and tasks directly from the command line, improving productivity and reducing context switching.
+
+** Automation
+Tasks such as code generation, data analysis, and natural language processing can be automated with AI, streamlining workflows.
+
+** Integration
+Terminal-based AI can be easily integrated into existing scripts and tools, providing enhanced functionality without requiring additional interfaces.
+
+* Conclusion
+This project demonstrates the setup and configuration of a terminal-based AI interface using Podman. The secure management of API keys, resolution of script execution issues, and the advantages of using Podman for containerization were highlighted. By leveraging AI from the terminal, users can significantly enhance their productivity and automate complex tasks seamlessly.

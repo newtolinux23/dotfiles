@@ -1,0 +1,110 @@
+#+STARTUP: showall
+#+OPTIONS: toc:2
+#+INFOJS_OPT: view:info toc:tdepth:2
+
+* Resolving Dns Issues
+
+This document describes the steps taken to troubleshoot and resolve DNS resolution issues for both IPv4 and IPv6 on a Fedora system. The primary issue was that IPv6 DNS queries were not being resolved correctly
+
+**** Author: Rob Alicea
+**** Date: <2024-06-26 Wed>
+**** Description: This document details the steps taken to troubleshoot and resolve DNS resolution issues for both IPv4 and IPv6 on a Fedora system.
+
+**** Table of Contents
+  - [[#initial-problem][Initial Problem]]
+  - [[#verifying-ipv6-connectivity][Verifying IPv6 Connectivity]]
+  - [[#editing-resolvedconf][Editing resolved.conf]]
+  - [[#bypassing-systemd-resolved][Bypassing systemd-resolved]]
+  - [[#testing-dns-resolution][Testing DNS Resolution]]
+  - [[#final-verification-and-summary][Final Verification and Summary]]
+
+* Initial Problem
+The initial problem was identified when the `dig +short -6 google.com` command failed to resolve IPv6 addresses, indicating an issue with IPv6 DNS resolution. This required us to check and modify the DNS configuration.
+
+* Verifying IPv6 Connectivity
+To ensure the system had proper IPv6 connectivity, we used the following command:
+
+#+BEGIN_SRC sh
+ping6 google.com
+#+END_SRC
+
+This confirmed that IPv6 connectivity was working correctly, as the command successfully pinged Google's IPv6 address.
+
+* Editing resolved.conf
+To troubleshoot `systemd-resolved` configuration, we checked and edited the `/etc/systemd/resolved.conf` file to ensure it included the correct DNS server addresses:
+
+#+BEGIN_SRC ini
+[Resolve]
+DNS=8.8.8.8 8.8.4.4
+FallbackDNS=1.1.1.1 1.0.0.1
+#+END_SRC
+
+After making the changes, we restarted the `systemd-resolved` service:
+
+#+BEGIN_SRC sh
+sudo systemctl restart systemd-resolved
+#+END_SRC
+
+* Bypassing systemd-resolved
+To bypass `systemd-resolved` and directly configure DNS servers, we created a new `/etc/resolv.conf` file. This ensured DNS queries were sent directly to the specified DNS servers, bypassing any issues with `systemd-resolved`.
+
+1. Backup the current `/etc/resolv.conf`:
+
+#+BEGIN_SRC sh
+sudo mv /etc/resolv.conf /etc/resolv.conf.backup
+#+END_SRC
+
+2. Create a new `/etc/resolv.conf` with the following content:
+
+#+BEGIN_SRC plaintext
+nameserver 8.8.8.8
+nameserver 8.8.4.4
+nameserver 2001:4860:4860::8888
+nameserver 2001:4860:4860::8844
+#+END_SRC
+
+* Testing DNS Resolution
+After configuring DNS servers manually, we tested DNS resolution for both IPv4 and IPv6 using the following commands:
+
+#+BEGIN_SRC sh
+dig google.com
+dig +short -6 google.com
+#+END_SRC
+
+We also queried Google's DNS servers directly to verify the resolution:
+
+#+BEGIN_SRC sh
+dig @8.8.8.8 google.com
+dig @2001:4860:4860::8888 google.com
+dig @2001:4860:4860::8844 google.com
+#+END_SRC
+
+These tests confirmed that DNS resolution was working correctly for both IPv4 and IPv6.
+
+* Final Verification and Summary
+To ensure the changes were persistent and the system behaved correctly, we chose to keep the manual DNS configuration in `/etc/resolv.conf`. This approach ensured stable DNS resolution for both IPv4 and IPv6.
+
+Periodic verification can be done using the following commands:
+
+1. Check `/etc/resolv.conf`:
+
+#+BEGIN_SRC sh
+cat /etc/resolv.conf
+#+END_SRC
+
+2. Test DNS resolution:
+
+#+BEGIN_SRC sh
+dig google.com
+dig +short -6 google.com
+#+END_SRC
+
+3. Direct queries to Google's DNS servers:
+
+#+BEGIN_SRC sh
+dig @8.8.8.8 google.com
+dig @2001:4860:4860::8888 google.com
+dig @2001:4860:4860::8844 google.com
+#+END_SRC
+
+By following these steps, we successfully resolved the DNS resolution issues on the Fedora system. If any further issues arise, additional troubleshooting may be required.

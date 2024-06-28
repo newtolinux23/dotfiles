@@ -1,0 +1,143 @@
+#+TITLE: Nextcloud Deployment on Fedora 40 Using Podman
+
+* Table of Contents
+- [[#introduction][Introduction]]
+- [[#advantages-of-running-nextcloud-locally][Advantages of Running Nextcloud Locally]]
+- [[#why-use-podman][Why Use Podman]]
+- [[#issues-encountered-and-solutions][Issues Encountered and Solutions]]
+- [[#installation-guide][Installation Guide]]
+  - [[#installing-podman][Installing Podman]]
+  - [[#setting-up-nextcloud-and-mariadb-containers][Setting Up Nextcloud and MariaDB Containers]]
+  - [[#configuring-cloudflare-tunnel][Configuring Cloudflare Tunnel]]
+  - [[#running-cloudflared-as-a-systemd-service][Running cloudflared as a systemd Service]]
+  - [[#modifying-nextcloud-configuration][Modifying Nextcloud Configuration]]
+
+* Introduction
+Nextcloud is a powerful self-hosted cloud storage solution that provides a secure, private, and feature-rich environment for file sharing and collaboration. This document details the process of setting up Nextcloud on a Fedora 40 system using Podman, a container management tool.
+
+* Advantages of Running Nextcloud Locally
+Running Nextcloud locally offers several benefits:
+  - *Data Privacy*: Your data remains under your control, without relying on third-party cloud services.
+  - *Cost Efficiency*: Avoid ongoing subscription fees associated with commercial cloud storage providers.
+  - *Customizability*: Full control over the environment and configuration, allowing for tailored solutions to specific needs.
+  - *Performance*: Potential for better performance with local network speeds compared to remote servers.
+
+* Why Use Podman
+Podman is chosen over other container management tools for the following reasons:
+  - *Rootless Containers*: Podman can run containers as a non-root user, enhancing security.
+  - *Compatibility*: Podman is compatible with Docker, making it easy to transition from Docker-based setups.
+  - *No Daemon*: Podman operates without a central daemon, providing a more secure and less resource-intensive solution.
+  - *Integration with Systemd*: Podman seamlessly integrates with systemd for managing container lifecycle as system services.
+
+* Issues Encountered and Solutions
+During the setup process on Fedora 40, we faced and resolved the following issues:
+
+1. *Container Networking Issues*:
+   - *Problem*: Difficulty in configuring container networking for database and application containers.
+   - *Solution*: Defined explicit network configurations and used podman’s network features to create isolated networks.
+
+2. *Persistent Storage*:
+   - *Problem*: Ensuring data persistence across container restarts.
+   - *Solution*: Utilized named volumes in Podman to store Nextcloud and database data persistently.
+
+3. *SSL/TLS Configuration*:
+   - *Problem*: Secure access to Nextcloud over the internet.
+   - *Solution*: Implemented Cloudflare tunnels for secure and convenient access to the Nextcloud instance.
+
+4. *Service Management*:
+   - *Problem*: Managing the lifecycle of containers with system reboots.
+   - *Solution*: Created systemd service files for automated management of Podman containers.
+
+5. *Domain Trust Configuration*:
+   - *Problem*: Accessing Nextcloud through a custom domain resulted in untrusted domain errors.
+   - *Solution*: Modified the Nextcloud configuration to include the custom domain in the list of trusted domains.
+
+* Installation Guide
+
+** Installing Podman
+   #+BEGIN_SRC sh
+   sudo dnf install -y podman
+   #+END_SRC
+
+** Setting Up Nextcloud and MariaDB Containers
+   #+BEGIN_SRC sh
+   podman volume create nextcloud_data
+   podman volume create nextcloud_db
+
+   podman run -d --name nextcloud-db \
+       -e MYSQL_ROOT_PASSWORD=your_root_password \
+       -e MYSQL_DATABASE=nextcloud \
+       -e MYSQL_USER=nextcloud \
+       -e MYSQL_PASSWORD=your_password \
+       -v nextcloud_db:/var/lib/mysql \
+       mariadb:latest
+
+   podman run -d --name nextcloud \
+       -p 8080:80 \
+       -v nextcloud_data:/var/www/html \
+       nextcloud:latest
+   #+END_SRC
+
+** Configuring Cloudflare Tunnel
+   - Install cloudflared:
+     #+BEGIN_SRC sh
+     sudo wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.rpm
+     sudo rpm -i cloudflared-linux-amd64.rpm
+     #+END_SRC
+
+   - Authenticate and create a tunnel:
+     #+BEGIN_SRC sh
+     cloudflared tunnel login
+     cloudflared tunnel create nextcloud
+     #+END_SRC
+
+   - Configure the tunnel (e.g., /etc/cloudflared/config.yml):
+     #+BEGIN_SRC yaml
+     tunnel: [YOUR_TUNNEL_ID]
+     credentials-file: /home/[USER]/.cloudflared/[TUNNEL_ID].json
+
+     ingress:
+       - hostname: nextcloud.yourdomain.com
+         service: http://localhost:8080
+       - service: http_status:404
+     #+END_SRC
+
+** Running cloudflared as a systemd Service
+   - Create the systemd service file:
+     #+BEGIN_SRC sh
+     sudo nano /etc/systemd/system/cloudflared-nextcloud.service
+     #+END_SRC
+
+     - Add the following content:
+       #+BEGIN_SRC ini
+       [Unit]
+       Description=Cloudflare Tunnel for Nextcloud
+       After=network.target
+
+       [Service]
+       ExecStart=/usr/local/bin/cloudflared tunnel --config /etc/cloudflared/config.yml run
+       Restart=on-failure
+       User=cloudflare
+
+       [Install]
+       WantedBy=multi-user.target
+       #+END_SRC
+
+     - Enable and start the service:
+       #+BEGIN_SRC sh
+       sudo systemctl daemon-reload
+       sudo systemctl enable cloudflared-nextcloud.service
+       sudo systemctl start cloudflared-nextcloud.service
+       #+END_SRC
+
+** Modifying Nextcloud Configuration
+   - Edit config.php to add the custom domain to trusted domains:
+     #+BEGIN_SRC php
+     'trusted_domains' =>
+     array (
+       0 => 'localhost',
+       1 => 'nextcloud.yourdomain.com',
+     ),
+     #+END_SRC
+
+By following these steps, you will have a fully functional, secure, and maintainable Nextcloud instance running on Fedora 40 using Podman.
